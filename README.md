@@ -3,7 +3,7 @@
 
 代码功能就是菜单栏点击打开pcd文件，页面加载点云。
 
-
+![alt text](image.png)
 
 
 项目讲解：[https://blog.csdn.net/knighthood2001/article/details/158044349](https://blog.csdn.net/knighthood2001/article/details/158044349)
