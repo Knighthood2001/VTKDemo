@@ -108,11 +108,15 @@
   <ItemGroup>
     <QtRcc Include="VTK930.qrc" />
     <QtMoc Include="VTK930.h" />
+    <ClCompile Include="PointCloudInputDialog.cpp" />
     <ClCompile Include="VTK930.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="VTK930.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="PointCloudInputDialog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">

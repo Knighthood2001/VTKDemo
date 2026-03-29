@@ -39,6 +39,7 @@
      <string>file</string>
     </property>
     <addaction name="actionopen"/>
+    <addaction name="actionload"/>
    </widget>
    <addaction name="menufile"/>
   </widget>
@@ -46,6 +47,11 @@
   <action name="actionopen">
    <property name="text">
     <string>open</string>
+   </property>
+  </action>
+  <action name="actionload">
+   <property name="text">
+    <string>load</string>
    </property>
   </action>
  </widget>

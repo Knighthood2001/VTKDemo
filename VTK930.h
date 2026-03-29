@@ -8,6 +8,16 @@
 #include <vtkRenderWindow.h>
 #include <QVTKRenderWidget.h>
 #include <QVTKOpenGLNativeWidget.h>
+#include <map>
+#include <string>
+#include <vector>
+
+class PointCloudInputDialog;
+
+struct Point3D {
+    float x, y, z;
+};
+
 class VTK930 : public QMainWindow
 {
     Q_OBJECT
@@ -20,11 +30,13 @@ private:
     Ui::VTK930 ui;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> view;
-
+    std::map<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> groupClouds;
+    
     void initialVtkWidget();
+    void addPointsToVisualizer(const std::vector<Point3D>& points, int r, int g, int b, const std::string& groupName);
 
 private slots:
     void onOpen();
+    void onLoad();
 
 };
-
