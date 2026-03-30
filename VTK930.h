@@ -17,10 +17,18 @@
 #include <QTimer>
 #include <vtkCamera.h>
 #include <vtkRenderer.h>
+
 class PointCloudInputDialog;
 
 struct Point3D {
     float x, y, z;
+};
+
+struct PointData {
+    std::string id;
+    float x, y, z;
+    std::string groupName;
+    int colorR, colorG, colorB;
 };
 
 class VTK930 : public QMainWindow
@@ -36,12 +44,22 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> view;
     std::map<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> groupClouds;
+    std::vector<PointData> allPoints;
     vtkSmartPointer<vtkOrientationMarkerWidget> markerWidget_;
     void initialVtkWidget();
     void addPointsToVisualizer(const std::vector<Point3D>& points, int r, int g, int b, const std::string& groupName);
+    void updatePointTable();
+    void updateGroupList();
+    void updateFilterCombo();
 
 private slots:
     void onOpen();
     void onLoad();
-    void initOrientationMarker(); // 初始化绝对坐标系
+    void onAddGroup();
+    void onDeleteGroup();
+    void onAddPoint();
+    void onDeletePoint();
+    void onClearPoints();
+    void onFilterChanged(int index);
+    void initOrientationMarker();
 };

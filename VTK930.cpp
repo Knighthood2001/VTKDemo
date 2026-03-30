@@ -2,6 +2,7 @@
 #include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>
+#include <QInputDialog>
 #include "PointCloudInputDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
@@ -12,6 +13,19 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
 
     connect(ui.actionopen, SIGNAL(triggered()), this, SLOT(onOpen()));
     connect(ui.actionload, SIGNAL(triggered()), this, SLOT(onLoad()));
+    connect(ui.addGroupBtn, &QPushButton::clicked, this, &VTK930::onAddGroup);
+    connect(ui.deleteGroupBtn, &QPushButton::clicked, this, &VTK930::onDeleteGroup);
+    connect(ui.addPointBtn, &QPushButton::clicked, this, &VTK930::onAddPoint);
+    connect(ui.deletePointBtn, &QPushButton::clicked, this, &VTK930::onDeletePoint);
+    connect(ui.clearPointsBtn, &QPushButton::clicked, this, &VTK930::onClearPoints);
+    connect(ui.filterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &VTK930::onFilterChanged);
+
+    ui.pointTable->setColumnWidth(0, 40);
+    ui.pointTable->setColumnWidth(1, 60);
+    ui.pointTable->setColumnWidth(2, 60);
+    ui.pointTable->setColumnWidth(3, 60);
+    ui.pointTable->setColumnWidth(4, 80);
 }
 
 VTK930::~VTK930() {}
@@ -19,8 +33,9 @@ VTK930::~VTK930() {}
 void VTK930::onOpen() {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
         new pcl::PointCloud<pcl::PointXYZ>());
-    QString fileName = QFileDialog::getOpenFileName(this, "Open PointCloud", ".",
-        "Open PCD files(*.pcd)");
+    QString fileName = QFileDialog::getOpenFileName(this,
+        QString::fromUtf8("\xe6\x89\x93\xe5\xbc\x80\xe7\x82\xb9\xe4\xba\x91"), ".",
+        QString::fromUtf8("PCD \xe6\x96\x87\xe4\xbb\xb6(*.pcd)"));
     if (fileName == "") return;
     pcl::io::loadPCDFile(fileName.toStdString(), *cloud);
 
@@ -43,11 +58,10 @@ void VTK930::onLoad() {
         if (!points.empty()) {
             addPointsToVisualizer(points, data.r, data.g, data.b, data.groupName.toStdString());
             view->resetCamera();
-            // ✅ 删掉：view->spin();  致命错误！
             ui.openGLWidget->update();
 
-            QMessageBox::information(this, "Success",
-                QString("Loaded %1 points into group '%2'").arg(points.size()).arg(data.groupName));
+            QMessageBox::information(this, QString::fromUtf8("\xe6\x88\x90\xe5\x8a\x9f"),
+                QString::fromUtf8("\xe5\xb7\xb2\xe5\x8a\xa0\xe8\xbd\xbd %1 \xe4\xb8\xaa\xe7\x82\xb9\xe5\x88\xb0\xe5\x88\x86\xe7\xbb\x84 '%2'").arg(points.size()).arg(data.groupName));
         }
     }
 }
@@ -63,6 +77,7 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
         cloud = groupClouds[groupName];
     }
 
+    int startId = allPoints.size();
     for (const auto& p : points) {
         pcl::PointXYZRGB point;
         point.x = p.x;
@@ -72,56 +87,193 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
         point.g = g;
         point.b = b;
         cloud->points.push_back(point);
+
+        PointData pd;
+        pd.id = std::to_string(startId++);
+        pd.x = p.x;
+        pd.y = p.y;
+        pd.z = p.z;
+        pd.groupName = groupName;
+        pd.colorR = r;
+        pd.colorG = g;
+        pd.colorB = b;
+        allPoints.push_back(pd);
     }
 
     view->removePointCloud(groupName);
     view->addPointCloud(cloud, groupName);
     view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
         (double)r / 255.0, (double)g / 255.0, (double)b / 255.0, groupName);
+
+    updatePointTable();
+    updateGroupList();
+    updateFilterCombo();
 }
 
-//void VTK930::initialVtkWidget() {
-//    // 1. 初始化VTK渲染核心
-//    vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-//    vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow =
-//        vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
-//    renderWindow->AddRenderer(renderer);
-//
-//    // 2. 绑定PCL可视化器
-//    view.reset(new pcl::visualization::PCLVisualizer(renderer, renderWindow,
-//        "viewer", false));
-//    view->setBackgroundColor(0.2, 0.2, 0.2);
-//
-//    // 3. 绑定Qt OpenGL Widget（固定顺序）
-//    view->setupInteractor(ui.openGLWidget->interactor(), ui.openGLWidget->renderWindow());
-//    ui.openGLWidget->setRenderWindow(view->getRenderWindow());
-//
-//    // ==============================================
-//    // 【核心修复】VTK 9.3 兼容：主视图坐标轴（中心显示）
-//    // ==============================================
-//    vtkSmartPointer<vtkAxesActor> axesActor = vtkSmartPointer<vtkAxesActor>::New();
-//    axesActor->SetTotalLength(1.0, 1.0, 1.0);  // 坐标轴长度
-//    axesActor->SetCylinderRadius(0.02);        // 轴粗细
-//    axesActor->SetConeRadius(0.1);             // 箭头大小
-//    renderer->AddActor(axesActor);             // 直接添加到渲染器
-//
-//    // 直接用 vtkAxesActor 做方向标记，兼容所有VTK9+版本，无API错误
-//    vtkSmartPointer<vtkAxesActor> orientationAxes = vtkSmartPointer<vtkAxesActor>::New();
-//    orientationAxes->SetTotalLength(1, 1, 1);
-//
-//    // VTK9.3 专用方向标组件
-//    vtkSmartPointer<vtkOrientationMarkerWidget> orientationWidget =
-//        vtkSmartPointer<vtkOrientationMarkerWidget>::New();
-//    orientationWidget->SetOrientationMarker(orientationAxes);
-//    orientationWidget->SetInteractor(ui.openGLWidget->interactor());
-//    orientationWidget->SetViewport(0.0, 0.0, 0.2, 0.2); // 左下角位置
-//    orientationWidget->SetEnabled(true);
-//    orientationWidget->InteractiveOn();
-//
-//    // 4. 渲染刷新
-//    view->resetCamera();
-//    ui.openGLWidget->update();
-//}
+void VTK930::updatePointTable() {
+    QString filter = ui.filterCombo->currentText();
+    std::vector<PointData> filteredPoints;
+
+    if (filter == QString::fromUtf8("\xe5\x85\xa8\xe9\x83\xa8")) {
+        filteredPoints = allPoints;
+    } else {
+        for (const auto& p : allPoints) {
+            if (QString::fromStdString(p.groupName) == filter) {
+                filteredPoints.push_back(p);
+            }
+        }
+    }
+
+    ui.pointTable->setRowCount(filteredPoints.size());
+    for (size_t i = 0; i < filteredPoints.size(); ++i) {
+        const auto& p = filteredPoints[i];
+        ui.pointTable->setItem(i, 0, new QTableWidgetItem(QString::fromStdString(p.id)));
+        ui.pointTable->setItem(i, 1, new QTableWidgetItem(QString::number(p.x, 'f', 3)));
+        ui.pointTable->setItem(i, 2, new QTableWidgetItem(QString::number(p.y, 'f', 3)));
+        ui.pointTable->setItem(i, 3, new QTableWidgetItem(QString::number(p.z, 'f', 3)));
+        ui.pointTable->setItem(i, 4, new QTableWidgetItem(QString::fromStdString(p.groupName)));
+    }
+}
+
+void VTK930::updateGroupList() {
+    ui.groupList->clear();
+    for (const auto& pair : groupClouds) {
+        ui.groupList->addItem(QString::fromStdString(pair.first));
+    }
+}
+
+void VTK930::updateFilterCombo() {
+    QString current = ui.filterCombo->currentText();
+    ui.filterCombo->clear();
+    ui.filterCombo->addItem(QString::fromUtf8("\xe5\x85\xa8\xe9\x83\xa8"));
+    for (const auto& pair : groupClouds) {
+        ui.filterCombo->addItem(QString::fromStdString(pair.first));
+    }
+
+    int index = ui.filterCombo->findText(current);
+    if (index >= 0) {
+        ui.filterCombo->setCurrentIndex(index);
+    }
+}
+
+void VTK930::onAddGroup() {
+    bool ok;
+    QString name = QInputDialog::getText(this, QString::fromUtf8("\xe6\xb7\xbb\xe5\x8a\xa0\xe5\x88\x86\xe7\xbb\x84"),
+        QString::fromUtf8("\xe8\xaf\xb7\xe8\xbe\x93\xe5\x85\xa5\xe5\x88\x86\xe7\xbb\x84\xe5\x90\x8d\xe7\xa7\xb0:"),
+        QLineEdit::Normal, QString::fromUtf8("\xe6\x96\xb0\xe5\x88\x86\xe7\xbb\x84"), &ok);
+    if (!ok || name.isEmpty()) return;
+
+    if (groupClouds.find(name.toStdString()) != groupClouds.end()) {
+        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
+            QString::fromUtf8("\xe8\xaf\xa5\xe5\x88\x86\xe7\xbb\x84\xe5\xb7\xb2\xe5\xad\x98\xe5\x9c\xa8\xef\xbc\x81"));
+        return;
+    }
+
+    groupClouds[name.toStdString()] = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>());
+    updateGroupList();
+    updateFilterCombo();
+}
+
+void VTK930::onDeleteGroup() {
+    int row = ui.groupList->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
+            QString::fromUtf8("\xe8\xaf\xb7\xe9\x80\x89\xe6\x8b\xa9\xe4\xb8\x80\xe4\xb8\xaa\xe5\x88\x86\xe7\xbb\x84"));
+        return;
+    }
+
+    QString groupName = ui.groupList->item(row)->text();
+
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4"),
+        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4\xe8\xa6\x81\xe5\x88\xa0\xe9\x99\xa4\xe5\x88\x86\xe7\xbb\x84 \"%1\" \xe5\x92\x8c\xe5\x85\xb6\xe6\x89\x80\xe6\x9c\x89\xe7\x82\xb9\xe5\x90\x97\xef\xbc\x9f").arg(groupName),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No) return;
+
+    std::string groupNameStr = groupName.toStdString();
+    groupClouds.erase(groupNameStr);
+
+    allPoints.erase(
+        std::remove_if(allPoints.begin(), allPoints.end(),
+            [&groupNameStr](const PointData& p) { return p.groupName == groupNameStr; }),
+        allPoints.end());
+
+    view->removePointCloud(groupNameStr);
+
+    updateGroupList();
+    updateFilterCombo();
+    updatePointTable();
+    ui.openGLWidget->update();
+}
+
+void VTK930::onAddPoint() {
+    onLoad();
+}
+
+void VTK930::onDeletePoint() {
+    int row = ui.pointTable->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
+            QString::fromUtf8("\xe8\xaf\xb7\xe9\x80\x89\xe6\x8b\xa9\xe4\xb8\x80\xe4\xb8\xaa\xe7\x82\xb9"));
+        return;
+    }
+
+    int id = ui.pointTable->item(row, 0)->text().toInt();
+
+    for (auto it = allPoints.begin(); it != allPoints.end(); ++it) {
+        if (it->id == std::to_string(id)) {
+            std::string groupName = it->groupName;
+
+            auto& cloud = groupClouds[groupName];
+            cloud->points.erase(cloud->points.begin() + (it - allPoints.begin()));
+
+            allPoints.erase(it);
+            break;
+        }
+    }
+
+    view->removePointCloud(groupClouds.begin()->first);
+    for (const auto& pair : groupClouds) {
+        if (!pair.second->points.empty()) {
+            view->addPointCloud(pair.second, pair.first);
+            view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
+                (double)pair.second->points[0].r / 255.0,
+                (double)pair.second->points[0].g / 255.0,
+                (double)pair.second->points[0].b / 255.0, pair.first);
+        }
+    }
+
+    updatePointTable();
+    ui.openGLWidget->update();
+}
+
+void VTK930::onClearPoints() {
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4"),
+        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4\xe8\xa6\x81\xe6\xb8\x85\xe7\xa9\xba\xe6\x89\x80\xe6\x9c\x89\xe7\x82\xb9\xe5\x90\x97\xef\xbc\x9f"),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No) return;
+
+    allPoints.clear();
+    for (auto& pair : groupClouds) {
+        pair.second->points.clear();
+        view->removePointCloud(pair.first);
+    }
+    groupClouds.clear();
+
+    updateGroupList();
+    updateFilterCombo();
+    updatePointTable();
+    ui.openGLWidget->update();
+}
+
+void VTK930::onFilterChanged(int index) {
+    Q_UNUSED(index);
+    updatePointTable();
+}
+
 void VTK930::initialVtkWidget()
 {
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
@@ -134,14 +286,12 @@ void VTK930::initialVtkWidget()
     view->setupInteractor(ui.openGLWidget->interactor(), ui.openGLWidget->renderWindow());
     ui.openGLWidget->setRenderWindow(view->getRenderWindow());
 
-    // 🔥 关键：延迟初始化（解决Qt+VTK坐标系消失问题）
-    QTimer::singleShot(10, this, &VTK930::initOrientationMarker);
+    QTimer::singleShot(50, this, &VTK930::initOrientationMarker);
 
     view->resetCamera();
     ui.openGLWidget->update();
 }
 
-// 左下角固定坐标轴 + 仅旋转 + 不平移不缩放
 void VTK930::initOrientationMarker()
 {
     auto axes = vtkSmartPointer<vtkAxesActor>::New();
@@ -153,14 +303,11 @@ void VTK930::initOrientationMarker()
 
     markerWidget_->SetOrientationMarker(axes);
 
-    // 🔥 关键1：绑定 renderer
     auto renderer = view->getRenderWindow()->GetRenderers()->GetFirstRenderer();
     markerWidget_->SetDefaultRenderer(renderer);
 
-    // 🔥 关键2：正确 interactor
     markerWidget_->SetInteractor(ui.openGLWidget->renderWindow()->GetInteractor());
 
-    // 🔥 关键3：viewport
     markerWidget_->SetViewport(0.0, 0.0, 0.2, 0.2);
 
     markerWidget_->SetEnabled(true);

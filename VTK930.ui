@@ -6,31 +6,174 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1200</width>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>VTK930</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QVTKOpenGLNativeWidget" name="openGLWidget">
-    <property name="geometry">
-     <rect>
-      <x>29</x>
-      <y>39</y>
-      <width>731</width>
-      <height>501</height>
-     </rect>
-    </property>
-   </widget>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QFrame" name="leftPanel">
+      <property name="minimumSize">
+       <size>
+        <width>300</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>400</width>
+        <height>16777215</height>
+       </size>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="leftPanelLayout">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>分组（坐标系）列表</string>
+         </property>
+         <layout class="QVBoxLayout" name="groupListLayout">
+          <item>
+           <widget class="QListWidget" name="groupList">
+            <property name="minimumHeight">
+             <number>120</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="groupBtnLayout">
+            <item>
+             <widget class="QPushButton" name="addGroupBtn">
+              <property name="text">
+               <string>添加分组</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deleteGroupBtn">
+              <property name="text">
+               <string>删除</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="pointListBox">
+         <property name="title">
+          <string>点列表</string>
+         </property>
+         <layout class="QVBoxLayout" name="pointListLayout">
+          <item>
+           <layout class="QHBoxLayout" name="filterLayout">
+            <item>
+             <widget class="QLabel" name="filterLabel">
+              <property name="text">
+               <string>筛选:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="filterCombo">
+              <property name="minimumWidth">
+               <number>120</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>全部</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="pointTable">
+            <property name="minimumHeight">
+             <number>250</number>
+            </property>
+            <column>
+             <property name="text">
+              <string>ID</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>X</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Y</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Z</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>分组</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="pointBtnLayout">
+            <item>
+             <widget class="QPushButton" name="addPointBtn">
+              <property name="text">
+               <string>添加点</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="deletePointBtn">
+              <property name="text">
+               <string>删除</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="clearPointsBtn">
+              <property name="text">
+               <string>清空</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QVTKOpenGLNativeWidget" name="openGLWidget">
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1200</width>
      <height>25</height>
     </rect>
    </property>
