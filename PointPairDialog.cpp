@@ -3,7 +3,6 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
-#include <QInputDialog>
 
 PointPairDialog::PointPairDialog(const std::vector<std::string>& groups,
                                  const std::vector<Point3D>& points,
@@ -11,13 +10,12 @@ PointPairDialog::PointPairDialog(const std::vector<std::string>& groups,
     : QDialog(parent), groups(groups), allPoints(points)
 {
     setWindowTitle(QStringLiteral("点配对设置"));
-    
-    setMinimumSize(700, 500);
-    resize(800, 550);
+    setMinimumSize(900, 600);
+    resize(950, 650);
 
-    QGroupBox* sourceGroup = new QGroupBox(QStringLiteral("源点选择"), this);
-    QGroupBox* targetGroup = new QGroupBox(QStringLiteral("目标点选择"), this);
-    QGroupBox* pairGroup = new QGroupBox(QStringLiteral("已配对"), this);
+    QGroupBox* sourceGroup = new QGroupBox(QStringLiteral("源点"), this);
+    QGroupBox* targetGroup = new QGroupBox(QStringLiteral("目标点"), this);
+    QGroupBox* pairGroup = new QGroupBox(QStringLiteral("已配对列表"), this);
 
     sourceGroupCombo = new QComboBox(this);
     targetGroupCombo = new QComboBox(this);
@@ -28,55 +26,57 @@ PointPairDialog::PointPairDialog(const std::vector<std::string>& groups,
     sourceList->setSelectionMode(QListWidget::SingleSelection);
     targetList->setSelectionMode(QListWidget::SingleSelection);
 
-    addPairBtn = new QPushButton(QStringLiteral("添加配对→"), this);
-    removePairBtn = new QPushButton(QStringLiteral("← 删除配对"), this);
+    sourceList->setMinimumHeight(200);
+    targetList->setMinimumHeight(200);
+    pairList->setMinimumHeight(200);
+
+    addPairBtn = new QPushButton(QStringLiteral("添加配对"), this);
+    addPairBtn->setMinimumWidth(100);
+    removePairBtn = new QPushButton(QStringLiteral("删除选中"), this);
+    removePairBtn->setMinimumWidth(100);
     okBtn = new QPushButton(QStringLiteral("确定"), this);
+    okBtn->setMinimumWidth(80);
     cancelBtn = new QPushButton(QStringLiteral("取消"), this);
+    cancelBtn->setMinimumWidth(80);
 
     for (const auto& g : groups) {
         sourceGroupCombo->addItem(QString::fromStdString(g));
         targetGroupCombo->addItem(QString::fromStdString(g));
     }
 
-    QHBoxLayout* sourceLayout = new QHBoxLayout;
-    sourceLayout->addWidget(new QLabel(QStringLiteral("分组:"), this));
+    QVBoxLayout* sourceLayout = new QVBoxLayout;
+    sourceLayout->addWidget(new QLabel(QStringLiteral("选择分组:"), this));
     sourceLayout->addWidget(sourceGroupCombo);
-    sourceLayout->addWidget(sourceList);
+    sourceLayout->addWidget(sourceList, 1);
+    sourceGroup->setLayout(sourceLayout);
 
-    QVBoxLayout* sourceGroupLayout = new QVBoxLayout;
-    sourceGroupLayout->addLayout(sourceLayout);
-    sourceGroup->setLayout(sourceGroupLayout);
-
-    QHBoxLayout* targetLayout = new QHBoxLayout;
-    targetLayout->addWidget(new QLabel(QStringLiteral("分组:"), this));
+    QVBoxLayout* targetLayout = new QVBoxLayout;
+    targetLayout->addWidget(new QLabel(QStringLiteral("选择分组:"), this));
     targetLayout->addWidget(targetGroupCombo);
-    targetLayout->addWidget(targetList);
+    targetLayout->addWidget(targetList, 1);
+    targetGroup->setLayout(targetLayout);
 
-    QVBoxLayout* targetGroupLayout = new QVBoxLayout;
-    targetGroupLayout->addLayout(targetLayout);
-    targetGroup->setLayout(targetGroupLayout);
-
+    QVBoxLayout* pairLayout = new QVBoxLayout;
+    pairLayout->addWidget(pairList, 1);
     QHBoxLayout* pairBtnLayout = new QHBoxLayout;
     pairBtnLayout->addWidget(addPairBtn);
     pairBtnLayout->addWidget(removePairBtn);
+    pairLayout->addLayout(pairBtnLayout);
+    pairGroup->setLayout(pairLayout);
 
-    QVBoxLayout* pairGroupLayout = new QVBoxLayout;
-    pairGroupLayout->addWidget(pairList);
-    pairGroupLayout->addLayout(pairBtnLayout);
-    pairGroup->setLayout(pairGroupLayout);
+    QHBoxLayout* middleLayout = new QHBoxLayout;
+    middleLayout->addWidget(sourceGroup, 1);
+    middleLayout->addWidget(targetGroup, 1);
+    middleLayout->addWidget(pairGroup, 1);
 
     QHBoxLayout* bottomLayout = new QHBoxLayout;
     bottomLayout->addStretch();
     bottomLayout->addWidget(okBtn);
     bottomLayout->addWidget(cancelBtn);
 
-    QHBoxLayout* middleLayout = new QHBoxLayout;
-    middleLayout->addWidget(sourceGroup);
-    middleLayout->addWidget(targetGroup);
-    middleLayout->addWidget(pairGroup);
-
     QVBoxLayout* mainLayout = new QVBoxLayout;
     mainLayout->addLayout(middleLayout);
+    mainLayout->addSpacing(15);
     mainLayout->addLayout(bottomLayout);
     setLayout(mainLayout);
 
@@ -111,7 +111,7 @@ void PointPairDialog::updateSourceList() {
 
     for (const auto& p : allPoints) {
         if (QString::fromStdString(p.groupName) == currentGroup) {
-            QString itemText = QString("[%1] (%2, %3, %4)")
+            QString itemText = QStringLiteral("[%1] (%2, %3, %4)")
                 .arg(QString::fromStdString(p.id))
                 .arg(p.x, 0, 'f', 3)
                 .arg(p.y, 0, 'f', 3)
@@ -144,7 +144,8 @@ void PointPairDialog::onAddPair() {
     QListWidgetItem* targetItem = targetList->currentItem();
 
     if (!sourceItem || !targetItem) {
-        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("请先在左侧和右侧各选择一个点！"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("请先在左侧和右侧各选择一个点！"));
         return;
     }
 
@@ -177,7 +178,7 @@ void PointPairDialog::onAddPair() {
 
     pairs.push_back(pair);
 
-    QString pairText = QString("%1[%2] ↔ %3[%4]")
+    QString pairText = QStringLiteral("%1[%2] <-> %3[%4]")
         .arg(sourceGroup).arg(sourceId)
         .arg(targetGroup).arg(targetId);
     new QListWidgetItem(pairText, pairList);
