@@ -6,6 +6,7 @@
 #include <QSplitter>
 #include <QLayout>
 #include "PointCloudInputDialog.h"
+#include "PointPairDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
 
@@ -16,9 +17,11 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     QSplitter* leftSplitter = new QSplitter(Qt::Vertical);
     leftSplitter->addWidget(ui.groupBox);
     leftSplitter->addWidget(ui.pointListBox);
+    leftSplitter->addWidget(ui.pairListBox);
     leftSplitter->setHandleWidth(3);
     leftSplitter->setStretchFactor(0, 1);
-    leftSplitter->setStretchFactor(1, 3);
+    leftSplitter->setStretchFactor(1, 2);
+    leftSplitter->setStretchFactor(2, 1);
 
     QLayout* oldLayout = ui.leftPanel->layout();
     if (oldLayout) {
@@ -44,12 +47,22 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     connect(ui.clearPointsBtn, &QPushButton::clicked, this, &VTK930::onClearPoints);
     connect(ui.filterCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &VTK930::onFilterChanged);
+    connect(ui.addPairBtn, &QPushButton::clicked, this, &VTK930::onAddPair);
+    connect(ui.deletePairBtn, &QPushButton::clicked, this, &VTK930::onDeletePair);
 
     ui.pointTable->setColumnWidth(0, 40);
     ui.pointTable->setColumnWidth(1, 60);
     ui.pointTable->setColumnWidth(2, 60);
     ui.pointTable->setColumnWidth(3, 60);
     ui.pointTable->setColumnWidth(4, 80);
+
+    ui.pairTable->setColumnWidth(0, 60);
+    ui.pairTable->setColumnWidth(1, 40);
+    ui.pairTable->setColumnWidth(2, 90);
+    ui.pairTable->setColumnWidth(3, 30);
+    ui.pairTable->setColumnWidth(4, 60);
+    ui.pairTable->setColumnWidth(5, 40);
+    ui.pairTable->setColumnWidth(6, 90);
 }
 
 VTK930::~VTK930() {}
@@ -338,4 +351,76 @@ void VTK930::initOrientationMarker()
     markerWidget_->InteractiveOff();
 
     ui.openGLWidget->renderWindow()->Render();
+}
+
+void VTK930::onAddPair() {
+    if (groupClouds.size() < 2) {
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("需要至少两个分组才能进行配对！"));
+        return;
+    }
+
+    std::vector<std::string> groups;
+    for (const auto& pair : groupClouds) {
+        groups.push_back(pair.first);
+    }
+
+    std::vector<Point3D> points;
+    for (const auto& p : allPoints) {
+        Point3D pt;
+        pt.x = p.x;
+        pt.y = p.y;
+        pt.z = p.z;
+        pt.id = p.id;
+        pt.groupName = p.groupName;
+        points.push_back(pt);
+    }
+
+    PointPairDialog dialog(groups, points, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        pointPairs = dialog.getPairs();
+        updatePairList();
+    }
+}
+
+void VTK930::onDeletePair() {
+    int row = ui.pairTable->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, QString::fromUtf8("警告"),
+            QString::fromUtf8("请选择要删除的配对"));
+        return;
+    }
+
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+        QString::fromUtf8("确认"),
+        QString::fromUtf8("确认要删除选中的配对吗？"),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::No) return;
+
+    pointPairs.erase(pointPairs.begin() + row);
+    updatePairList();
+}
+
+void VTK930::updatePairList() {
+    ui.pairTable->setRowCount(pointPairs.size());
+
+    for (size_t i = 0; i < pointPairs.size(); ++i) {
+        const auto& pair = pointPairs[i];
+        ui.pairTable->setItem(i, 0, new QTableWidgetItem(QString::fromStdString(pair.sourceGroup)));
+        ui.pairTable->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(pair.sourceId)));
+        ui.pairTable->setItem(i, 2, new QTableWidgetItem(
+            QString("(%1, %2, %3)")
+                .arg(pair.sourcePoint.x, 0, 'f', 3)
+                .arg(pair.sourcePoint.y, 0, 'f', 3)
+                .arg(pair.sourcePoint.z, 0, 'f', 3)));
+        ui.pairTable->setItem(i, 3, new QTableWidgetItem(QString::fromUtf8("↔")));
+        ui.pairTable->setItem(i, 4, new QTableWidgetItem(QString::fromStdString(pair.targetGroup)));
+        ui.pairTable->setItem(i, 5, new QTableWidgetItem(QString::fromStdString(pair.targetId)));
+        ui.pairTable->setItem(i, 6, new QTableWidgetItem(
+            QString("(%1, %2, %3)")
+                .arg(pair.targetPoint.x, 0, 'f', 3)
+                .arg(pair.targetPoint.y, 0, 'f', 3)
+                .arg(pair.targetPoint.z, 0, 'f', 3)));
+    }
 }

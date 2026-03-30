@@ -19,10 +19,7 @@
 #include <vtkRenderer.h>
 
 class PointCloudInputDialog;
-
-struct Point3D {
-    float x, y, z;
-};
+#include "PointPairDialog.h"
 
 struct PointData {
     std::string id;
@@ -45,12 +42,14 @@ private:
     boost::shared_ptr<pcl::visualization::PCLVisualizer> view;
     std::map<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> groupClouds;
     std::vector<PointData> allPoints;
+    std::vector<PointPair> pointPairs;
     vtkSmartPointer<vtkOrientationMarkerWidget> markerWidget_;
     void initialVtkWidget();
     void addPointsToVisualizer(const std::vector<Point3D>& points, int r, int g, int b, const std::string& groupName);
     void updatePointTable();
     void updateGroupList();
     void updateFilterCombo();
+    void updatePairList();
 
 private slots:
     void onOpen();
@@ -62,4 +61,6 @@ private slots:
     void onClearPoints();
     void onFilterChanged(int index);
     void initOrientationMarker();
+    void onAddPair();
+    void onDeletePair();
 };

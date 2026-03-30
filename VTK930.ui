@@ -166,6 +166,78 @@
           </layout>
          </widget>
         </item>
+        <item>
+         <widget class="QGroupBox" name="pairListBox">
+          <property name="title">
+           <string>配对列表</string>
+          </property>
+          <layout class="QVBoxLayout" name="pairListLayout">
+           <item>
+            <widget class="QTableWidget" name="pairTable">
+             <property name="minimumHeight">
+              <number>80</number>
+             </property>
+             <property name="alternatingRowColors">
+              <bool>true</bool>
+             </property>
+             <column>
+              <property name="text">
+               <string>源分组</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>源ID</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>源坐标</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string></string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>目标分组</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>目标ID</string>
+              </property>
+             </column>
+             <column>
+              <property name="text">
+               <string>目标坐标</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="pairBtnLayout">
+             <item>
+              <widget class="QPushButton" name="addPairBtn">
+               <property name="text">
+                <string>添加配对</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="deletePairBtn">
+               <property name="text">
+                <string>删除配对</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QVTKOpenGLNativeWidget" name="openGLWidget">
