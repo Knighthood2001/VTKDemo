@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QInputDialog>
+#include <QSplitter>
+#include <QLayout>
 #include "PointCloudInputDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
@@ -10,6 +12,28 @@
 VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     ui.setupUi(this);
     initialVtkWidget();
+
+    QSplitter* leftSplitter = new QSplitter(Qt::Vertical);
+    leftSplitter->addWidget(ui.groupBox);
+    leftSplitter->addWidget(ui.pointListBox);
+    leftSplitter->setHandleWidth(3);
+    leftSplitter->setStretchFactor(0, 1);
+    leftSplitter->setStretchFactor(1, 3);
+
+    QLayout* oldLayout = ui.leftPanel->layout();
+    if (oldLayout) {
+        QLayoutItem* item;
+        while ((item = oldLayout->takeAt(0)) != nullptr) {
+            if (item->widget()) {
+                item->widget()->setParent(nullptr);
+            }
+            delete item;
+        }
+        delete oldLayout;
+    }
+    ui.leftPanel->setLayout(new QVBoxLayout());
+    ui.leftPanel->layout()->setContentsMargins(0, 0, 0, 0);
+    ui.leftPanel->layout()->addWidget(leftSplitter);
 
     connect(ui.actionopen, SIGNAL(triggered()), this, SLOT(onOpen()));
     connect(ui.actionload, SIGNAL(triggered()), this, SLOT(onLoad()));
@@ -311,7 +335,7 @@ void VTK930::initOrientationMarker()
     markerWidget_->SetViewport(0.0, 0.0, 0.2, 0.2);
 
     markerWidget_->SetEnabled(true);
-    markerWidget_->InteractiveOn();
+    markerWidget_->InteractiveOff();
 
     ui.openGLWidget->renderWindow()->Render();
 }
