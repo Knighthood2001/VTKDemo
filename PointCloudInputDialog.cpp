@@ -1,11 +1,11 @@
-#include "PointCloudInputDialog.h"
+﻿#include "PointCloudInputDialog.h"
 #include <QMessageBox>
 #include <sstream>
 
 PointCloudInputDialog::PointCloudInputDialog(QWidget* parent)
     : QDialog(parent), currentR(255), currentG(0), currentB(0)
 {
-    setWindowTitle("Add Point Cloud");
+    setWindowTitle(QStringLiteral("加载点"));
     setupUI();
     setMinimumWidth(500);
     setMinimumHeight(450);
@@ -67,9 +67,9 @@ void PointCloudInputDialog::setupUI() {
     QGroupBox* groupBox = new QGroupBox("Group Information", this);
     QVBoxLayout* groupLayout = new QVBoxLayout(groupBox);
     
-    QLabel* groupLabel = new QLabel("Group Name:", this);
+    QLabel* groupLabel = new QLabel(QStringLiteral("组名:"), this);
     groupNameEdit = new QLineEdit(this);
-    groupNameEdit->setPlaceholderText("Enter group name (e.g., cluster_1)...");
+    groupNameEdit->setPlaceholderText(QStringLiteral("输入组名"));
     groupNameEdit->setMinimumHeight(35);
     groupLayout->addWidget(groupLabel);
     groupLayout->addWidget(groupNameEdit);

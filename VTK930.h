@@ -8,10 +8,15 @@
 #include <vtkRenderWindow.h>
 #include <QVTKRenderWidget.h>
 #include <QVTKOpenGLNativeWidget.h>
+#include <vtkAxesActor.h>
+#include <vtkOrientationMarkerWidget.h>
+#include <vtkSmartPointer.h>
 #include <map>
 #include <string>
 #include <vector>
-
+#include <QTimer>
+#include <vtkCamera.h>
+#include <vtkRenderer.h>
 class PointCloudInputDialog;
 
 struct Point3D {
@@ -31,12 +36,12 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
     boost::shared_ptr<pcl::visualization::PCLVisualizer> view;
     std::map<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> groupClouds;
-    
+    vtkSmartPointer<vtkOrientationMarkerWidget> markerWidget_;
     void initialVtkWidget();
     void addPointsToVisualizer(const std::vector<Point3D>& points, int r, int g, int b, const std::string& groupName);
 
 private slots:
     void onOpen();
     void onLoad();
-
+    void initOrientationMarker(); // 延迟初始化方向轴
 };
