@@ -3,7 +3,6 @@
 #include <QDebug>
 #include <QMessageBox>
 #include "PointCloudInputDialog.h"
-// 补充必要头文件（如果没加）
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
 
@@ -28,7 +27,6 @@ void VTK930::onOpen() {
     view->removePointCloud("cloud");
     view->addPointCloud(cloud, "cloud");
     view->resetCamera();
-    // ✅ 删掉：view->spin();  致命错误！
     ui.openGLWidget->update();
 }
 
@@ -126,7 +124,6 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
 //}
 void VTK930::initialVtkWidget()
 {
-    // 1. 基础渲染初始化（你的原有代码不变）
     vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> renderWindow = vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New();
     renderWindow->AddRenderer(renderer);
@@ -138,13 +135,13 @@ void VTK930::initialVtkWidget()
     ui.openGLWidget->setRenderWindow(view->getRenderWindow());
 
     // 🔥 关键：延迟初始化（解决Qt+VTK坐标系消失问题）
-    QTimer::singleShot(50, this, &VTK930::initOrientationMarker);
+    QTimer::singleShot(10, this, &VTK930::initOrientationMarker);
 
     view->resetCamera();
     ui.openGLWidget->update();
 }
 
-// 🔥 专门实现：左下角固定坐标轴 + 仅旋转 + 不平移不缩放
+// 左下角固定坐标轴 + 仅旋转 + 不平移不缩放
 void VTK930::initOrientationMarker()
 {
     auto axes = vtkSmartPointer<vtkAxesActor>::New();

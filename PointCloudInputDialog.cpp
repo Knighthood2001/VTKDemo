@@ -64,7 +64,7 @@ void PointCloudInputDialog::setupUI() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
 
-    QGroupBox* groupBox = new QGroupBox("Group Information", this);
+    QGroupBox* groupBox = new QGroupBox(QStringLiteral("组信息"), this);
     QVBoxLayout* groupLayout = new QVBoxLayout(groupBox);
     
     QLabel* groupLabel = new QLabel(QStringLiteral("组名:"), this);
@@ -75,22 +75,22 @@ void PointCloudInputDialog::setupUI() {
     groupLayout->addWidget(groupNameEdit);
     mainLayout->addWidget(groupBox);
 
-    QGroupBox* pointsBox = new QGroupBox("Point Coordinates", this);
+    QGroupBox* pointsBox = new QGroupBox(QStringLiteral("点坐标"), this);
     QVBoxLayout* pointsLayout = new QVBoxLayout(pointsBox);
     
-    QLabel* pointsLabel = new QLabel("Enter points (one point per line, format: X Y Z):", this);
+    QLabel* pointsLabel = new QLabel(QStringLiteral("输入点坐标"), this);
     pointsTextEdit = new QTextEdit(this);
-    pointsTextEdit->setPlaceholderText("Example:\n1 2 3\n2 3 4\n3 4 5\n44 55 55");
+    pointsTextEdit->setPlaceholderText(QStringLiteral("例如:\n1 2 3\n2 3 4\n3 4 5\n"));
     pointsTextEdit->setMinimumHeight(150);
     pointsLayout->addWidget(pointsLabel);
     pointsLayout->addWidget(pointsTextEdit);
     mainLayout->addWidget(pointsBox);
 
-    QGroupBox* colorBox = new QGroupBox("Color Settings", this);
+    QGroupBox* colorBox = new QGroupBox(QStringLiteral("颜色设置"), this);
     QHBoxLayout* colorLayout = new QHBoxLayout(colorBox);
     colorLayout->setSpacing(15);
     
-    colorButton = new QPushButton("Pick Color", this);
+    colorButton = new QPushButton(QStringLiteral("选择颜色"), this);
     colorButton->setMinimumHeight(40);
     colorButton->setMinimumWidth(150);
     
@@ -99,7 +99,7 @@ void PointCloudInputDialog::setupUI() {
     colorPreview->setStyleSheet(QString("background-color: rgb(%1,%2,%3); border: 2px solid #aaa; border-radius: 4px;").arg(currentR).arg(currentG).arg(currentB));
     colorPreview->setAlignment(Qt::AlignCenter);
     
-    QLabel* previewLabel = new QLabel("Preview:", this);
+    QLabel* previewLabel = new QLabel(QStringLiteral("颜色预览:"), this);
     
     colorLayout->addWidget(colorButton);
     colorLayout->addStretch();
@@ -142,7 +142,7 @@ void PointCloudInputDialog::setupUI() {
 }
 
 void PointCloudInputDialog::onColorButtonClicked() {
-    QColor color = QColorDialog::getColor(QColor(currentR, currentG, currentB), this, "Pick a color");
+    QColor color = QColorDialog::getColor(QColor(currentR, currentG, currentB), this, QStringLiteral("选择颜色"));
     if (color.isValid()) {
         currentR = color.red();
         currentG = color.green();

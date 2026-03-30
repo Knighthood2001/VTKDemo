@@ -43,5 +43,5 @@ private:
 private slots:
     void onOpen();
     void onLoad();
-    void initOrientationMarker(); // 延迟初始化方向轴
+    void initOrientationMarker(); // 鍒濆鍖栫粷瀵瑰潗鏍囩郴
 };
