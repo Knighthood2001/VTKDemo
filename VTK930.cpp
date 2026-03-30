@@ -56,13 +56,10 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     ui.pointTable->setColumnWidth(3, 60);
     ui.pointTable->setColumnWidth(4, 80);
 
-    ui.pairTable->setColumnWidth(0, 60);
-    ui.pairTable->setColumnWidth(1, 40);
-    ui.pairTable->setColumnWidth(2, 90);
-    ui.pairTable->setColumnWidth(3, 30);
-    ui.pairTable->setColumnWidth(4, 60);
-    ui.pairTable->setColumnWidth(5, 40);
-    ui.pairTable->setColumnWidth(6, 90);
+    ui.pairTable->setColumnWidth(0, 100);
+    ui.pairTable->setColumnWidth(1, 130);
+    ui.pairTable->setColumnWidth(2, 100);
+    ui.pairTable->setColumnWidth(3, 130);
 }
 
 VTK930::~VTK930() {}
@@ -407,17 +404,21 @@ void VTK930::updatePairList() {
 
     for (size_t i = 0; i < pointPairs.size(); ++i) {
         const auto& pair = pointPairs[i];
-        ui.pairTable->setItem(i, 0, new QTableWidgetItem(QString::fromStdString(pair.sourceGroup)));
-        ui.pairTable->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(pair.sourceId)));
-        ui.pairTable->setItem(i, 2, new QTableWidgetItem(
+        QString sourcePoint = QString("%1#%2")
+            .arg(QString::fromStdString(pair.sourceGroup))
+            .arg(QString::fromStdString(pair.sourceId));
+        QString targetPoint = QString("%1#%2")
+            .arg(QString::fromStdString(pair.targetGroup))
+            .arg(QString::fromStdString(pair.targetId));
+
+        ui.pairTable->setItem(i, 0, new QTableWidgetItem(sourcePoint));
+        ui.pairTable->setItem(i, 1, new QTableWidgetItem(
             QString("(%1, %2, %3)")
                 .arg(pair.sourcePoint.x, 0, 'f', 3)
                 .arg(pair.sourcePoint.y, 0, 'f', 3)
                 .arg(pair.sourcePoint.z, 0, 'f', 3)));
-        ui.pairTable->setItem(i, 3, new QTableWidgetItem(QString::fromUtf8("↔")));
-        ui.pairTable->setItem(i, 4, new QTableWidgetItem(QString::fromStdString(pair.targetGroup)));
-        ui.pairTable->setItem(i, 5, new QTableWidgetItem(QString::fromStdString(pair.targetId)));
-        ui.pairTable->setItem(i, 6, new QTableWidgetItem(
+        ui.pairTable->setItem(i, 2, new QTableWidgetItem(targetPoint));
+        ui.pairTable->setItem(i, 3, new QTableWidgetItem(
             QString("(%1, %2, %3)")
                 .arg(pair.targetPoint.x, 0, 'f', 3)
                 .arg(pair.targetPoint.y, 0, 'f', 3)
