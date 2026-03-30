@@ -9,6 +9,8 @@
 #include "PointPairDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
+#include <Eigen/Dense>
+#include <Eigen/SVD>
 
 VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     ui.setupUi(this);
@@ -49,6 +51,7 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
             this, &VTK930::onFilterChanged);
     connect(ui.addPairBtn, &QPushButton::clicked, this, &VTK930::onAddPair);
     connect(ui.deletePairBtn, &QPushButton::clicked, this, &VTK930::onDeletePair);
+    connect(ui.computeTransformBtn, &QPushButton::clicked, this, &VTK930::onComputeTransform);
 
     ui.pointTable->setColumnWidth(0, 40);
     ui.pointTable->setColumnWidth(1, 60);
@@ -424,4 +427,122 @@ void VTK930::updatePairList() {
                 .arg(pair.targetPoint.y, 0, 'f', 3)
                 .arg(pair.targetPoint.z, 0, 'f', 3)));
     }
+}
+
+void VTK930::onComputeTransform() {
+    if (pointPairs.size() < 3) {
+        QMessageBox::warning(this, QString::fromUtf8("警告"),
+            QString::fromUtf8("配对点数量不足！至少需要3对对应点进行转换矩阵计算。"));
+        return;
+    }
+
+    TransformationMatrix matAB = computeTransformAB();
+    TransformationMatrix matBA = computeTransformBA();
+
+    Eigen::Matrix4d mAB = matAB.toMatrix();
+    Eigen::Matrix4d mBA = matBA.toMatrix();
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            ui.matrixABTable->setItem(i, j, new QTableWidgetItem(QString::number(mAB(i,j), 'f', 6)));
+            ui.matrixBATable->setItem(i, j, new QTableWidgetItem(QString::number(mBA(i,j), 'f', 6)));
+        }
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        ui.matrixABTable->setColumnWidth(i, 90);
+        ui.matrixABTable->setRowHeight(i, 25);
+        ui.matrixBATable->setColumnWidth(i, 90);
+        ui.matrixBATable->setRowHeight(i, 25);
+    }
+}
+
+TransformationMatrix VTK930::computeTransformAB() {
+    TransformationMatrix result;
+    result.rotation = Eigen::Matrix3d::Identity();
+    result.translation = Eigen::Vector3d::Zero();
+
+    if (pointPairs.size() < 3) {
+        return result;
+    }
+
+    std::vector<Eigen::Vector3d> sourcePoints, targetPoints;
+    for (const auto& pair : pointPairs) {
+        sourcePoints.push_back(Eigen::Vector3d(pair.sourcePoint.x, pair.sourcePoint.y, pair.sourcePoint.z));
+        targetPoints.push_back(Eigen::Vector3d(pair.targetPoint.x, pair.targetPoint.y, pair.targetPoint.z));
+    }
+
+    Eigen::Vector3d sourceCentroid = Eigen::Vector3d::Zero();
+    Eigen::Vector3d targetCentroid = Eigen::Vector3d::Zero();
+    for (const auto& p : sourcePoints) sourceCentroid += p;
+    sourceCentroid /= sourcePoints.size();
+    for (const auto& p : targetPoints) targetCentroid += p;
+    targetCentroid /= targetPoints.size();
+
+    Eigen::MatrixXd sourceCentered(sourcePoints.size(), 3);
+    Eigen::MatrixXd targetCentered(targetPoints.size(), 3);
+    for (size_t i = 0; i < sourcePoints.size(); ++i) {
+        sourceCentered.row(i) = sourcePoints[i] - sourceCentroid;
+        targetCentered.row(i) = targetPoints[i] - targetCentroid;
+    }
+
+    Eigen::Matrix3d H = sourceCentered.transpose() * targetCentered;
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix3d R = svd.matrixV() * svd.matrixU().transpose();
+
+    if (R.determinant() < 0) {
+        Eigen::Matrix3d V = svd.matrixV();
+        V.col(2) *= -1;
+        R = V * svd.matrixU().transpose();
+    }
+
+    result.rotation = R;
+    result.translation = targetCentroid - R * sourceCentroid;
+
+    return result;
+}
+
+TransformationMatrix VTK930::computeTransformBA() {
+    TransformationMatrix result;
+    result.rotation = Eigen::Matrix3d::Identity();
+    result.translation = Eigen::Vector3d::Zero();
+
+    if (pointPairs.size() < 3) {
+        return result;
+    }
+
+    std::vector<Eigen::Vector3d> sourcePoints, targetPoints;
+    for (const auto& pair : pointPairs) {
+        sourcePoints.push_back(Eigen::Vector3d(pair.sourcePoint.x, pair.sourcePoint.y, pair.sourcePoint.z));
+        targetPoints.push_back(Eigen::Vector3d(pair.targetPoint.x, pair.targetPoint.y, pair.targetPoint.z));
+    }
+
+    Eigen::Vector3d sourceCentroid = Eigen::Vector3d::Zero();
+    Eigen::Vector3d targetCentroid = Eigen::Vector3d::Zero();
+    for (const auto& p : sourcePoints) sourceCentroid += p;
+    sourceCentroid /= sourcePoints.size();
+    for (const auto& p : targetPoints) targetCentroid += p;
+    targetCentroid /= targetPoints.size();
+
+    Eigen::MatrixXd sourceCentered(sourcePoints.size(), 3);
+    Eigen::MatrixXd targetCentered(targetPoints.size(), 3);
+    for (size_t i = 0; i < sourcePoints.size(); ++i) {
+        sourceCentered.row(i) = sourcePoints[i] - sourceCentroid;
+        targetCentered.row(i) = targetPoints[i] - targetCentroid;
+    }
+
+    Eigen::Matrix3d H = targetCentered.transpose() * sourceCentered;
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix3d R = svd.matrixV() * svd.matrixU().transpose();
+
+    if (R.determinant() < 0) {
+        Eigen::Matrix3d V = svd.matrixV();
+        V.col(2) *= -1;
+        R = V * svd.matrixU().transpose();
+    }
+
+    result.rotation = R;
+    result.translation = sourceCentroid - R * targetCentroid;
+
+    return result;
 }

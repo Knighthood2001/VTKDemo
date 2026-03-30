@@ -28,6 +28,17 @@ struct PointData {
     int colorR, colorG, colorB;
 };
 
+struct TransformationMatrix {
+    Eigen::Matrix3d rotation;
+    Eigen::Vector3d translation;
+    Eigen::Matrix4d toMatrix() const {
+        Eigen::Matrix4d m = Eigen::Matrix4d::Identity();
+        m.block<3,3>(0,0) = rotation;
+        m.block<3,1>(0,3) = translation;
+        return m;
+    }
+};
+
 class VTK930 : public QMainWindow
 {
     Q_OBJECT
@@ -50,6 +61,9 @@ private:
     void updateGroupList();
     void updateFilterCombo();
     void updatePairList();
+    TransformationMatrix computeTransformAB();
+    TransformationMatrix computeTransformBA();
+    void onComputeTransform();
 
 private slots:
     void onOpen();
