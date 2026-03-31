@@ -1,4 +1,4 @@
-﻿#include "VTK930.h"
+#include "VTK930.h"
 #include <QFileDialog>
 #include <QDebug>
 #include <QMessageBox>
@@ -441,7 +441,10 @@ void VTK930::onViewTransform() {
         TransformationMatrix matAB = computeTransformAB();
         TransformationMatrix matBA = computeTransformBA();
 
-        TransformResultDialog dialog(matAB.toMatrix(), matBA.toMatrix(), this);
+        std::string group1 = pointPairs[0].sourceGroup;
+        std::string group2 = pointPairs[0].targetGroup;
+
+        TransformResultDialog dialog(matAB.toMatrix(), matBA.toMatrix(), group1, group2, this);
         if (dialog.exec() == QDialog::Accepted) {
             break;
         }

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <QDialog>
 #include <QTableWidget>
@@ -15,6 +15,8 @@ class TransformResultDialog : public QDialog {
 public:
     explicit TransformResultDialog(const Eigen::Matrix4d& matAB, 
                                  const Eigen::Matrix4d& matBA,
+                                 const std::string& group1,
+                                 const std::string& group2,
                                  QWidget* parent = nullptr);
     ~TransformResultDialog();
 

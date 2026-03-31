@@ -5,6 +5,8 @@
 
 TransformResultDialog::TransformResultDialog(const Eigen::Matrix4d& matAB, 
                                              const Eigen::Matrix4d& matBA,
+                                             const std::string& group1,
+                                             const std::string& group2,
                                              QWidget* parent)
     : QDialog(parent), currentMatAB(matAB), currentMatBA(matBA)
 {
@@ -14,7 +16,14 @@ TransformResultDialog::TransformResultDialog(const Eigen::Matrix4d& matAB,
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    QGroupBox* abGroup = new QGroupBox(QStringLiteral("A → B 转换矩阵"), this);
+    QString title1 = QString("%1 → %2 转换矩阵")
+        .arg(QString::fromStdString(group1))
+        .arg(QString::fromStdString(group2));
+    QString title2 = QString("%1 → %2 转换矩阵")
+        .arg(QString::fromStdString(group2))
+        .arg(QString::fromStdString(group1));
+
+    QGroupBox* abGroup = new QGroupBox(title1, this);
     QVBoxLayout* abLayout = new QVBoxLayout;
     matrixABTable = new QTableWidget(4, 4, this);
     matrixABTable->horizontalHeader()->setVisible(false);
@@ -24,7 +33,7 @@ TransformResultDialog::TransformResultDialog(const Eigen::Matrix4d& matAB,
     abLayout->addWidget(copyABBtn);
     abGroup->setLayout(abLayout);
 
-    QGroupBox* baGroup = new QGroupBox(QStringLiteral("B → A 转换矩阵"), this);
+    QGroupBox* baGroup = new QGroupBox(title2, this);
     QVBoxLayout* baLayout = new QVBoxLayout;
     matrixBATable = new QTableWidget(4, 4, this);
     matrixBATable->horizontalHeader()->setVisible(false);
