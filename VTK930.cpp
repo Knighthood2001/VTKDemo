@@ -377,7 +377,7 @@ void VTK930::onAddPair() {
         points.push_back(pt);
     }
 
-    PointPairDialog dialog(groups, points, this);
+    PointPairDialog dialog(groups, points, pointPairs, this);
     if (dialog.exec() == QDialog::Accepted) {
         pointPairs = dialog.getPairs();
         updatePairList();

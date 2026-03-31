@@ -1,4 +1,4 @@
-﻿#include "PointPairDialog.h"
+#include "PointPairDialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -6,8 +6,9 @@
 
 PointPairDialog::PointPairDialog(const std::vector<std::string>& groups,
                                  const std::vector<Point3D>& points,
+                                 const std::vector<PointPair>& existingPairs,
                                  QWidget* parent)
-    : QDialog(parent), groups(groups), allPoints(points)
+    : QDialog(parent), groups(groups), allPoints(points), pairs(existingPairs)
 {
     setWindowTitle(QStringLiteral("点配对设置"));
     setMinimumSize(900, 600);
@@ -91,6 +92,15 @@ PointPairDialog::PointPairDialog(const std::vector<std::string>& groups,
 
     updateSourceList();
     updateTargetList();
+
+    for (const auto& pair : pairs) {
+        QString pairText = QStringLiteral("%1[%2] <-> %3[%4]")
+            .arg(QString::fromStdString(pair.sourceGroup))
+            .arg(QString::fromStdString(pair.sourceId))
+            .arg(QString::fromStdString(pair.targetGroup))
+            .arg(QString::fromStdString(pair.targetId));
+        new QListWidgetItem(pairText, pairList);
+    }
 }
 
 PointPairDialog::~PointPairDialog() {}

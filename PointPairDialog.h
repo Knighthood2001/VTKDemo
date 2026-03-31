@@ -29,6 +29,7 @@ class PointPairDialog : public QDialog {
 public:
     explicit PointPairDialog(const std::vector<std::string>& groups,
                              const std::vector<Point3D>& points,
+                             const std::vector<PointPair>& existingPairs,
                              QWidget* parent = nullptr);
     ~PointPairDialog();
 
