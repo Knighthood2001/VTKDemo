@@ -40,6 +40,12 @@
     <ClCompile Include="PointCloudInputDialog.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PointPairDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformResultDialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="VTK930.ui">
@@ -48,6 +54,12 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="PointCloudInputDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="PointPairDialog.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="TransformResultDialog.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>

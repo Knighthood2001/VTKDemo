@@ -63,7 +63,7 @@ private:
     void updatePairList();
     TransformationMatrix computeTransformAB();
     TransformationMatrix computeTransformBA();
-    void onComputeTransform();
+    void onViewTransform();
 
 private slots:
     void onOpen();

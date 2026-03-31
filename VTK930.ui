@@ -232,64 +232,10 @@
               </spacer>
              </item>
              <item>
-              <widget class="QPushButton" name="computeTransformBtn">
+              <widget class="QPushButton" name="viewTransformBtn">
                <property name="text">
-                <string>计算转换矩阵</string>
+                <string>查看转换矩阵</string>
                </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-           <item>
-            <layout class="QHBoxLayout" name="transformResultLayout">
-             <item>
-              <widget class="QGroupBox" name="transformABox">
-               <property name="title">
-                <string>A → B 转换矩阵</string>
-               </property>
-               <layout class="QVBoxLayout" name="transformABL">
-                <item>
-                 <widget class="QTableWidget" name="matrixABTable">
-                  <property name="rowCount">
-                   <number>4</number>
-                  </property>
-                  <property name="columnCount">
-                   <number>4</number>
-                  </property>
-                  <attribute name="horizontalHeaderVisible">
-                   <bool>false</bool>
-                  </attribute>
-                  <attribute name="verticalHeaderVisible">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="transformBBox">
-               <property name="title">
-                <string>B → A 转换矩阵</string>
-               </property>
-               <layout class="QVBoxLayout" name="transformBAL">
-                <item>
-                 <widget class="QTableWidget" name="matrixBATable">
-                  <property name="rowCount">
-                   <number>4</number>
-                  </property>
-                  <property name="columnCount">
-                   <number>4</number>
-                  </property>
-                  <attribute name="horizontalHeaderVisible">
-                   <bool>false</bool>
-                  </attribute>
-                  <attribute name="verticalHeaderVisible">
-                   <bool>false</bool>
-                  </attribute>
-                 </widget>
-                </item>
-               </layout>
               </widget>
              </item>
             </layout>

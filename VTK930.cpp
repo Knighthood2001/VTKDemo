@@ -7,6 +7,7 @@
 #include <QLayout>
 #include "PointCloudInputDialog.h"
 #include "PointPairDialog.h"
+#include "TransformResultDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
 #include <Eigen/Dense>
@@ -51,7 +52,7 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
             this, &VTK930::onFilterChanged);
     connect(ui.addPairBtn, &QPushButton::clicked, this, &VTK930::onAddPair);
     connect(ui.deletePairBtn, &QPushButton::clicked, this, &VTK930::onDeletePair);
-    connect(ui.computeTransformBtn, &QPushButton::clicked, this, &VTK930::onComputeTransform);
+    connect(ui.viewTransformBtn, &QPushButton::clicked, this, &VTK930::onViewTransform);
 
     ui.pointTable->setColumnWidth(0, 40);
     ui.pointTable->setColumnWidth(1, 60);
@@ -429,31 +430,21 @@ void VTK930::updatePairList() {
     }
 }
 
-void VTK930::onComputeTransform() {
+void VTK930::onViewTransform() {
     if (pointPairs.size() < 3) {
         QMessageBox::warning(this, QString::fromUtf8("警告"),
             QString::fromUtf8("配对点数量不足！至少需要3对对应点进行转换矩阵计算。"));
         return;
     }
 
-    TransformationMatrix matAB = computeTransformAB();
-    TransformationMatrix matBA = computeTransformBA();
+    while (true) {
+        TransformationMatrix matAB = computeTransformAB();
+        TransformationMatrix matBA = computeTransformBA();
 
-    Eigen::Matrix4d mAB = matAB.toMatrix();
-    Eigen::Matrix4d mBA = matBA.toMatrix();
-
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            ui.matrixABTable->setItem(i, j, new QTableWidgetItem(QString::number(mAB(i,j), 'f', 6)));
-            ui.matrixBATable->setItem(i, j, new QTableWidgetItem(QString::number(mBA(i,j), 'f', 6)));
+        TransformResultDialog dialog(matAB.toMatrix(), matBA.toMatrix(), this);
+        if (dialog.exec() == QDialog::Accepted) {
+            break;
         }
-    }
-
-    for (int i = 0; i < 4; ++i) {
-        ui.matrixABTable->setColumnWidth(i, 90);
-        ui.matrixABTable->setRowHeight(i, 25);
-        ui.matrixBATable->setColumnWidth(i, 90);
-        ui.matrixBATable->setRowHeight(i, 25);
     }
 }
 
