@@ -431,24 +431,125 @@ void VTK930::updatePairList() {
 }
 
 void VTK930::onViewTransform() {
-    if (pointPairs.size() < 3) {
+    if (pointPairs.empty()) {
         QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("配对点数量不足！至少需要3对对应点进行转换矩阵计算。"));
+            QString::fromUtf8("没有任何配对点！请先添加配对点。"));
         return;
     }
 
-    while (true) {
-        TransformationMatrix matAB = computeTransformAB();
-        TransformationMatrix matBA = computeTransformBA();
+    std::vector<std::string> allGroups;
+    std::set<std::string> groupSet;
+    for (const auto& pair : pointPairs) {
+        groupSet.insert(pair.sourceGroup);
+        groupSet.insert(pair.targetGroup);
+    }
+    for (const auto& g : groupSet) {
+        allGroups.push_back(g);
+    }
 
-        std::string group1 = pointPairs[0].sourceGroup;
-        std::string group2 = pointPairs[0].targetGroup;
+    std::vector<std::pair<std::string, std::string>> availablePairs = getAvailablePairs();
 
-        TransformResultDialog dialog(matAB.toMatrix(), matBA.toMatrix(), group1, group2, this);
-        if (dialog.exec() == QDialog::Accepted) {
-            break;
+    TransformResultDialog dialog(allGroups, availablePairs, this);
+
+    connect(&dialog, &TransformResultDialog::recomputeRequested,
+            this, &VTK930::onRecomputeTransform);
+
+    dialog.exec();
+}
+
+void VTK930::onRecomputeTransform(const std::string& sourceGroup, const std::string& targetGroup) {
+    TransformationMatrix matAB, matBA;
+    computeTransformBetween(sourceGroup, targetGroup, matAB, matBA);
+
+    TransformResultDialog* dialog = qobject_cast<TransformResultDialog*>(sender());
+    if (dialog) {
+        QString title1 = QString("%1 → %2 转换矩阵")
+            .arg(QString::fromStdString(sourceGroup))
+            .arg(QString::fromStdString(targetGroup));
+        QString title2 = QString("%1 → %2 转换矩阵")
+            .arg(QString::fromStdString(targetGroup))
+            .arg(QString::fromStdString(sourceGroup));
+
+        auto abGroup = dialog->findChild<QGroupBox*>();
+        if (abGroup) abGroup->setTitle(title1);
+
+        dialog->updateMatrices(matAB.toMatrix(), matBA.toMatrix());
+    }
+}
+
+std::vector<std::pair<std::string, std::string>> VTK930::getAvailablePairs() const {
+    std::vector<std::pair<std::string, std::string>> pairs;
+    std::set<std::pair<std::string, std::string>> uniquePairs;
+    
+    for (const auto& pair : pointPairs) {
+        uniquePairs.insert({pair.sourceGroup, pair.targetGroup});
+    }
+    
+    for (const auto& p : uniquePairs) {
+        pairs.push_back(p);
+    }
+    return pairs;
+}
+
+void VTK930::computeTransformBetween(const std::string& sourceGroup, const std::string& targetGroup,
+                                      TransformationMatrix& matAB, TransformationMatrix& matBA) {
+    matAB = TransformationMatrix();
+    matBA = TransformationMatrix();
+    matAB.rotation = Eigen::Matrix3d::Identity();
+    matAB.translation = Eigen::Vector3d::Zero();
+    matBA.rotation = Eigen::Matrix3d::Identity();
+    matBA.translation = Eigen::Vector3d::Zero();
+
+    std::vector<PointPair> filteredPairs;
+    for (const auto& pair : pointPairs) {
+        if (pair.sourceGroup == sourceGroup && pair.targetGroup == targetGroup) {
+            filteredPairs.push_back(pair);
         }
     }
+
+    if (filteredPairs.size() < 3) {
+        QMessageBox::warning(this, QString::fromUtf8("警告"),
+            QString::fromUtf8("错误: %1 和 %2 之间只有 %3 对配对点，至少需要3对！")
+                .arg(QString::fromStdString(sourceGroup))
+                .arg(QString::fromStdString(targetGroup))
+                .arg(filteredPairs.size()));
+        return;
+    }
+
+    std::vector<Eigen::Vector3d> sourcePoints, targetPoints;
+    for (const auto& pair : filteredPairs) {
+        sourcePoints.push_back(Eigen::Vector3d(pair.sourcePoint.x, pair.sourcePoint.y, pair.sourcePoint.z));
+        targetPoints.push_back(Eigen::Vector3d(pair.targetPoint.x, pair.targetPoint.y, pair.targetPoint.z));
+    }
+
+    Eigen::Vector3d sourceCentroid = Eigen::Vector3d::Zero();
+    Eigen::Vector3d targetCentroid = Eigen::Vector3d::Zero();
+    for (const auto& p : sourcePoints) sourceCentroid += p;
+    sourceCentroid /= sourcePoints.size();
+    for (const auto& p : targetPoints) targetCentroid += p;
+    targetCentroid /= targetPoints.size();
+
+    Eigen::MatrixXd sourceCentered(sourcePoints.size(), 3);
+    Eigen::MatrixXd targetCentered(targetPoints.size(), 3);
+    for (size_t i = 0; i < sourcePoints.size(); ++i) {
+        sourceCentered.row(i) = sourcePoints[i] - sourceCentroid;
+        targetCentered.row(i) = targetPoints[i] - targetCentroid;
+    }
+
+    Eigen::Matrix3d H = sourceCentered.transpose() * targetCentered;
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::Matrix3d R = svd.matrixV() * svd.matrixU().transpose();
+
+    if (R.determinant() < 0) {
+        Eigen::Matrix3d V = svd.matrixV();
+        V.col(2) *= -1;
+        R = V * svd.matrixU().transpose();
+    }
+
+    matAB.rotation = R;
+    matAB.translation = targetCentroid - R * sourceCentroid;
+    matBA.rotation = R.transpose();
+    matBA.translation = sourceCentroid - R.transpose() * targetCentroid;
 }
 
 TransformationMatrix VTK930::computeTransformAB() {

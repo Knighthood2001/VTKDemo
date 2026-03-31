@@ -63,7 +63,11 @@ private:
     void updatePairList();
     TransformationMatrix computeTransformAB();
     TransformationMatrix computeTransformBA();
+    void computeTransformBetween(const std::string& sourceGroup, const std::string& targetGroup, 
+                                 TransformationMatrix& matAB, TransformationMatrix& matBA);
+    std::vector<std::pair<std::string, std::string>> getAvailablePairs() const;
     void onViewTransform();
+    void onRecomputeTransform(const std::string& sourceGroup, const std::string& targetGroup);
 
 private slots:
     void onOpen();
