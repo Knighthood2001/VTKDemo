@@ -20,6 +20,7 @@
 
 class PointCloudInputDialog;
 #include "PointPairDialog.h"
+#include "TransformResultDialog.h"
 
 struct PointData {
     std::string id;
@@ -68,6 +69,7 @@ private:
     std::vector<std::pair<std::string, std::string>> getAvailablePairs() const;
     void onViewTransform();
     void onRecomputeTransform(const std::string& sourceGroup, const std::string& targetGroup);
+    void onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix);
 
 private slots:
     void onOpen();

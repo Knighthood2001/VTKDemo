@@ -8,6 +8,7 @@
 #include "PointCloudInputDialog.h"
 #include "PointPairDialog.h"
 #include "TransformResultDialog.h"
+#include "GroupNameDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
 #include <Eigen/Dense>
@@ -431,28 +432,30 @@ void VTK930::updatePairList() {
 }
 
 void VTK930::onViewTransform() {
-    if (pointPairs.empty()) {
-        QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("没有任何配对点！请先添加配对点。"));
-        return;
-    }
-
-    std::vector<std::string> allGroups;
+    std::vector<std::string> allGroupsInPairs;
     std::set<std::string> groupSet;
+    
+    for (const auto& pt : allPoints) {
+        groupSet.insert(pt.groupName);
+    }
+    
     for (const auto& pair : pointPairs) {
         groupSet.insert(pair.sourceGroup);
         groupSet.insert(pair.targetGroup);
     }
+    
     for (const auto& g : groupSet) {
-        allGroups.push_back(g);
+        allGroupsInPairs.push_back(g);
     }
 
     std::vector<std::pair<std::string, std::string>> availablePairs = getAvailablePairs();
 
-    TransformResultDialog dialog(allGroups, availablePairs, this);
+    TransformResultDialog dialog(allGroupsInPairs, availablePairs, this);
 
     connect(&dialog, &TransformResultDialog::recomputeRequested,
             this, &VTK930::onRecomputeTransform);
+    connect(&dialog, &TransformResultDialog::batchTransformRequested,
+            this, &VTK930::onBatchTransform);
 
     dialog.exec();
 }
@@ -474,6 +477,127 @@ void VTK930::onRecomputeTransform(const std::string& sourceGroup, const std::str
         if (abGroup) abGroup->setTitle(title1);
 
         dialog->updateMatrices(matAB.toMatrix(), matBA.toMatrix());
+    }
+}
+
+void VTK930::onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix) {
+    TransformResultDialog* dialog = qobject_cast<TransformResultDialog*>(sender());
+    if (!dialog) return;
+
+    TransformationMatrix matAB, matBA;
+    computeTransformBetween(dialog->getSelectedSourceGroup(), dialog->getSelectedTargetGroup(), matAB, matBA);
+
+    Eigen::Matrix4d matToUse = useABMatrix ? matAB.toMatrix() : matBA.toMatrix();
+
+    std::vector<Point3D> originalPoints;
+    std::vector<Point3D> transformedPoints;
+
+    for (const auto& pt : allPoints) {
+        if (pt.groupName == groupName) {
+            Point3D origPt;
+            origPt.x = pt.x;
+            origPt.y = pt.y;
+            origPt.z = pt.z;
+            originalPoints.push_back(origPt);
+
+            Eigen::Vector4d homogenous(pt.x, pt.y, pt.z, 1.0);
+            Eigen::Vector4d transformed = matToUse * homogenous;
+            
+            Point3D transPt;
+            transPt.x = transformed.x();
+            transPt.y = transformed.y();
+            transPt.z = transformed.z();
+            transformedPoints.push_back(transPt);
+        }
+    }
+
+    dialog->setBatchTransformResults(originalPoints, transformedPoints);
+
+    if (originalPoints.empty()) {
+        QMessageBox::warning(this, QString::fromUtf8("警告"),
+            QString::fromUtf8("分组 %1 中没有点！").arg(QString::fromStdString(groupName)));
+        return;
+    }
+
+    QString suggestedName;
+    if (useABMatrix) {
+        suggestedName = QString("%1_to_%2")
+            .arg(QString::fromStdString(groupName))
+            .arg(QString::fromStdString(dialog->getSelectedTargetGroup()));
+    } else {
+        suggestedName = QString("%1_to_%2")
+            .arg(QString::fromStdString(groupName))
+            .arg(QString::fromStdString(dialog->getSelectedSourceGroup()));
+    }
+
+    GroupNameDialog nameDialog(suggestedName, this);
+    if (nameDialog.exec() == QDialog::Accepted) {
+        QString newGroupName = nameDialog.getGroupName();
+        std::string newGroupStr = newGroupName.toStdString();
+
+        bool exists = false;
+        for (const auto& pt : allPoints) {
+            if (pt.groupName == newGroupStr) {
+                exists = true;
+                break;
+            }
+        }
+
+        if (exists) {
+            QMessageBox::StandardButton reply = QMessageBox::question(this,
+                QString::fromUtf8("确认"),
+                QString::fromUtf8("分组 %1 已存在，是否覆盖？").arg(newGroupName),
+                QMessageBox::Yes | QMessageBox::No);
+            if (reply == QMessageBox::No) {
+                return;
+            }
+            std::vector<PointData> newPoints;
+            for (const auto& pt : allPoints) {
+                if (pt.groupName != newGroupStr) {
+                    newPoints.push_back(pt);
+                }
+            }
+            allPoints = newPoints;
+        }
+
+        int idCounter = 0;
+        for (size_t i = 0; i < originalPoints.size(); ++i) {
+            PointData newPt;
+            newPt.id = "pt_" + std::to_string(++idCounter);
+            newPt.x = static_cast<float>(transformedPoints[i].x);
+            newPt.y = static_cast<float>(transformedPoints[i].y);
+            newPt.z = static_cast<float>(transformedPoints[i].z);
+            newPt.groupName = newGroupStr;
+            
+            if (useABMatrix) {
+                newPt.colorR = 0;
+                newPt.colorG = 200;
+                newPt.colorB = 0;
+            } else {
+                newPt.colorR = 200;
+                newPt.colorG = 0;
+                newPt.colorB = 200;
+            }
+            allPoints.push_back(newPt);
+        }
+
+        updateGroupList();
+        updatePointTable();
+
+        std::vector<Point3D> ptsForVisual;
+        for (size_t i = 0; i < originalPoints.size(); ++i) {
+            Point3D p;
+            p.x = transformedPoints[i].x;
+            p.y = transformedPoints[i].y;
+            p.z = transformedPoints[i].z;
+            ptsForVisual.push_back(p);
+        }
+
+        addPointsToVisualizer(ptsForVisual, 
+            useABMatrix ? 0 : 200, 
+            useABMatrix ? 200 : 0, 
+            useABMatrix ? 0 : 200, 
+            newGroupStr);
     }
 }
 

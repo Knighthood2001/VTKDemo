@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QGridLayout>
 
 TransformResultDialog::TransformResultDialog(const std::vector<std::string>& groups,
                                              const std::vector<std::pair<std::string, std::string>>& pairs,
@@ -10,8 +11,8 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     : QDialog(parent), allGroups(groups), availablePairs(pairs)
 {
     setWindowTitle(QStringLiteral("转换矩阵计算结果"));
-    setMinimumSize(600, 750);
-    resize(650, 800);
+    setMinimumSize(750, 1000);
+    resize(800, 1050);
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
@@ -32,8 +33,7 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     statusLabel = new QLabel(this);
     mainLayout->addWidget(statusLabel);
 
-    QString title1 = QStringLiteral("转换矩阵");
-    QGroupBox* abGroup = new QGroupBox(title1, this);
+    QGroupBox* abGroup = new QGroupBox(QStringLiteral("转换矩阵 (源→目标)"), this);
     QVBoxLayout* abLayout = new QVBoxLayout;
     matrixABTable = new QTableWidget(4, 4, this);
     matrixABTable->horizontalHeader()->setVisible(false);
@@ -43,7 +43,7 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     abLayout->addWidget(copyABBtn);
     abGroup->setLayout(abLayout);
 
-    QGroupBox* baGroup = new QGroupBox(title1, this);
+    QGroupBox* baGroup = new QGroupBox(QStringLiteral("转换矩阵 (目标→源)"), this);
     QVBoxLayout* baLayout = new QVBoxLayout;
     matrixBATable = new QTableWidget(4, 4, this);
     matrixBATable->horizontalHeader()->setVisible(false);
@@ -56,6 +56,84 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     mainLayout->addWidget(abGroup);
     mainLayout->addWidget(baGroup);
 
+    QGroupBox* transformGroup = new QGroupBox(QStringLiteral("单点转换"), this);
+    QVBoxLayout* transformLayout = new QVBoxLayout;
+    
+    QHBoxLayout* inputLayout = new QHBoxLayout;
+    inputLayout->addWidget(new QLabel(QStringLiteral("输入点坐标:"), this));
+    inputLayout->addWidget(new QLabel(QStringLiteral("X:"), this));
+    inputX = new QLineEdit(this);
+    inputX->setPlaceholderText(QStringLiteral("0.0"));
+    inputX->setMaximumWidth(80);
+    inputLayout->addWidget(inputX);
+    inputLayout->addWidget(new QLabel(QStringLiteral("Y:"), this));
+    inputY = new QLineEdit(this);
+    inputY->setPlaceholderText(QStringLiteral("0.0"));
+    inputY->setMaximumWidth(80);
+    inputLayout->addWidget(inputY);
+    inputLayout->addWidget(new QLabel(QStringLiteral("Z:"), this));
+    inputZ = new QLineEdit(this);
+    inputZ->setPlaceholderText(QStringLiteral("0.0"));
+    inputZ->setMaximumWidth(80);
+    inputLayout->addWidget(inputZ);
+    inputLayout->addStretch();
+    transformLayout->addLayout(inputLayout);
+    
+    transformBtn = new QPushButton(QStringLiteral("转换"), this);
+    transformLayout->addWidget(transformBtn);
+    
+    QHBoxLayout* resultLayout = new QHBoxLayout;
+    resultLayout->addWidget(new QLabel(QStringLiteral("转换结果:"), this));
+    resultLabel = new QLabel(QStringLiteral("(等待输入...)"), this);
+    resultLabel->setStyleSheet(QStringLiteral("font-weight: bold; color: blue;"));
+    resultLayout->addWidget(resultLabel);
+    resultLayout->addStretch();
+    copyResultBtn = new QPushButton(QStringLiteral("复制结果"), this);
+    copyResultBtn->setEnabled(false);
+    resultLayout->addWidget(copyResultBtn);
+    transformLayout->addLayout(resultLayout);
+    
+    transformGroup->setLayout(transformLayout);
+    mainLayout->addWidget(transformGroup);
+
+    QGroupBox* batchGroup = new QGroupBox(QStringLiteral("批量转换"), this);
+    QVBoxLayout* batchLayout = new QVBoxLayout;
+    
+    QHBoxLayout* batchSelectLayout = new QHBoxLayout;
+    batchSelectLayout->addWidget(new QLabel(QStringLiteral("选择要转换的分组:"), this));
+    batchGroupCombo = new QComboBox(this);
+    batchSelectLayout->addWidget(batchGroupCombo);
+    batchSelectLayout->addStretch();
+    batchLayout->addLayout(batchSelectLayout);
+    
+    QHBoxLayout* matrixSelectLayout = new QHBoxLayout;
+    matrixSelectLayout->addWidget(new QLabel(QStringLiteral("选择转换矩阵:"), this));
+    useABRadio = new QRadioButton(QStringLiteral("源→目标 (A→B)"), this);
+    useABRadio->setChecked(true);
+    useBARadio = new QRadioButton(QStringLiteral("目标→源 (B→A)"), this);
+    matrixSelectLayout->addWidget(useABRadio);
+    matrixSelectLayout->addWidget(useBARadio);
+    matrixSelectLayout->addStretch();
+    batchLayout->addLayout(matrixSelectLayout);
+    
+    batchTransformBtn = new QPushButton(QStringLiteral("执行批量转换"), this);
+    batchLayout->addWidget(batchTransformBtn);
+    
+    batchResultTable = new QTableWidget(0, 7, this);
+    batchResultTable->setHorizontalHeaderLabels(QStringList() 
+        << QStringLiteral("序号") 
+        << QStringLiteral("原始X") << QStringLiteral("原始Y") << QStringLiteral("原始Z")
+        << QStringLiteral("转换X") << QStringLiteral("转换Y") << QStringLiteral("转换Z"));
+    batchResultTable->horizontalHeader()->setStretchLastSection(true);
+    batchLayout->addWidget(batchResultTable);
+    
+    copyBatchBtn = new QPushButton(QStringLiteral("复制所有结果"), this);
+    copyBatchBtn->setEnabled(false);
+    batchLayout->addWidget(copyBatchBtn);
+    
+    batchGroup->setLayout(batchLayout);
+    mainLayout->addWidget(batchGroup);
+
     QHBoxLayout* btnLayout = new QHBoxLayout;
     recomputeBtn = new QPushButton(QStringLiteral("计算"), this);
     closeBtn = new QPushButton(QStringLiteral("关闭"), this);
@@ -64,7 +142,16 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     btnLayout->addWidget(closeBtn);
     mainLayout->addLayout(btnLayout);
 
-    updateGroupComboBoxes();
+    sourceGroupCombo->clear();
+    targetGroupCombo->clear();
+    for (const auto& g : allGroups) {
+        sourceGroupCombo->addItem(QString::fromStdString(g));
+        targetGroupCombo->addItem(QString::fromStdString(g));
+    }
+
+    for (const auto& g : allGroups) {
+        batchGroupCombo->addItem(QString::fromStdString(g));
+    }
 
     connect(sourceGroupCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransformResultDialog::onGroupSelectionChanged);
@@ -74,24 +161,20 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     connect(copyBABtn, &QPushButton::clicked, this, &TransformResultDialog::onCopyBA);
     connect(recomputeBtn, &QPushButton::clicked, this, &TransformResultDialog::onRecompute);
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
+    connect(transformBtn, &QPushButton::clicked, this, &TransformResultDialog::onTransformPoint);
+    connect(copyResultBtn, &QPushButton::clicked, this, &TransformResultDialog::onCopyResult);
+    connect(batchTransformBtn, &QPushButton::clicked, this, &TransformResultDialog::onBatchTransform);
+    connect(copyBatchBtn, &QPushButton::clicked, this, &TransformResultDialog::onCopyBatchResults);
 }
 
 TransformResultDialog::~TransformResultDialog() {}
 
-void TransformResultDialog::updateGroupComboBoxes() {
-    sourceGroupCombo->blockSignals(true);
-    targetGroupCombo->blockSignals(true);
-    
-    sourceGroupCombo->clear();
-    targetGroupCombo->clear();
-    
-    for (const auto& g : allGroups) {
-        sourceGroupCombo->addItem(QString::fromStdString(g));
-        targetGroupCombo->addItem(QString::fromStdString(g));
-    }
-    
-    sourceGroupCombo->blockSignals(false);
-    targetGroupCombo->blockSignals(false);
+std::string TransformResultDialog::getSelectedSourceGroup() const {
+    return sourceGroupCombo->currentText().toStdString();
+}
+
+std::string TransformResultDialog::getSelectedTargetGroup() const {
+    return targetGroupCombo->currentText().toStdString();
 }
 
 void TransformResultDialog::onGroupSelectionChanged() {
@@ -121,14 +204,6 @@ void TransformResultDialog::onGroupSelectionChanged() {
     } else {
         statusLabel->setText(QStringLiteral("提示: 点击「计算」按钮计算 %1 → %2 的转换矩阵").arg(source).arg(target));
     }
-}
-
-std::string TransformResultDialog::getSelectedSourceGroup() const {
-    return sourceGroupCombo->currentText().toStdString();
-}
-
-std::string TransformResultDialog::getSelectedTargetGroup() const {
-    return targetGroupCombo->currentText().toStdString();
 }
 
 void TransformResultDialog::updateMatrices(const Eigen::Matrix4d& matAB, const Eigen::Matrix4d& matBA) {
@@ -187,4 +262,104 @@ void TransformResultDialog::onRecompute() {
     }
     
     emit recomputeRequested(source.toStdString(), target.toStdString());
+}
+
+Eigen::Vector3d TransformResultDialog::transformPoint(const Eigen::Vector3d& point, const Eigen::Matrix4d& mat) {
+    Eigen::Vector4d homogenous(point.x(), point.y(), point.z(), 1.0);
+    Eigen::Vector4d transformed = mat * homogenous;
+    return Eigen::Vector3d(transformed.x(), transformed.y(), transformed.z());
+}
+
+void TransformResultDialog::onTransformPoint() {
+    bool okX, okY, okZ;
+    double x = inputX->text().toDouble(&okX);
+    double y = inputY->text().toDouble(&okY);
+    double z = inputZ->text().toDouble(&okZ);
+    
+    if (!okX || !okY || !okZ) {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("请输入有效的坐标值！"));
+        return;
+    }
+    
+    Eigen::Vector3d inputPoint(x, y, z);
+    Eigen::Matrix4d matToUse = useABRadio->isChecked() ? currentMatAB : currentMatBA;
+    Eigen::Vector3d result = transformPoint(inputPoint, matToUse);
+    
+    QString resultText = QStringLiteral("(%1, %2, %3)")
+        .arg(result.x(), 0, 'f', 6)
+        .arg(result.y(), 0, 'f', 6)
+        .arg(result.z(), 0, 'f', 6);
+    
+    resultLabel->setText(resultText);
+    copyResultBtn->setEnabled(true);
+}
+
+void TransformResultDialog::onCopyResult() {
+    QString text = resultLabel->text();
+    QApplication::clipboard()->setText(text);
+}
+
+void TransformResultDialog::onBatchTransform() {
+    QString selectedGroup = batchGroupCombo->currentText();
+    if (selectedGroup.isEmpty()) {
+        QMessageBox::warning(this, QStringLiteral("警告"), QStringLiteral("请选择要转换的分组！"));
+        return;
+    }
+    
+    emit batchTransformRequested(selectedGroup.toStdString(), 
+                                  targetGroupCombo->currentText().toStdString(),
+                                  useABRadio->isChecked());
+}
+
+void TransformResultDialog::setBatchTransformResults(const std::vector<Point3D>& originalPoints, 
+                                                      const std::vector<Point3D>& transformedPoints) {
+    batchOriginalPoints = originalPoints;
+    batchTransformedPoints = transformedPoints;
+    
+    batchResultTable->setRowCount(static_cast<int>(originalPoints.size()));
+    
+    for (size_t i = 0; i < originalPoints.size(); ++i) {
+        batchResultTable->setItem(static_cast<int>(i), 0, 
+            new QTableWidgetItem(QString::number(i + 1)));
+        
+        batchResultTable->setItem(static_cast<int>(i), 1, 
+            new QTableWidgetItem(QString::number(originalPoints[i].x, 'f', 6)));
+        batchResultTable->setItem(static_cast<int>(i), 2, 
+            new QTableWidgetItem(QString::number(originalPoints[i].y, 'f', 6)));
+        batchResultTable->setItem(static_cast<int>(i), 3, 
+            new QTableWidgetItem(QString::number(originalPoints[i].z, 'f', 6)));
+        
+        if (i < transformedPoints.size()) {
+            batchResultTable->setItem(static_cast<int>(i), 4, 
+                new QTableWidgetItem(QString::number(transformedPoints[i].x, 'f', 6)));
+            batchResultTable->setItem(static_cast<int>(i), 5, 
+                new QTableWidgetItem(QString::number(transformedPoints[i].y, 'f', 6)));
+            batchResultTable->setItem(static_cast<int>(i), 6, 
+                new QTableWidgetItem(QString::number(transformedPoints[i].z, 'f', 6)));
+        }
+    }
+    
+    batchResultTable->resizeColumnsToContents();
+    copyBatchBtn->setEnabled(true);
+}
+
+void TransformResultDialog::onCopyBatchResults() {
+    QString text;
+    text += QStringLiteral("序号\t原始X\t原始Y\t原始Z\t转换X\t转换Y\t转换Z\n");
+    
+    for (size_t i = 0; i < batchOriginalPoints.size(); ++i) {
+        text += QString::number(i + 1) + "\t";
+        text += QString::number(batchOriginalPoints[i].x, 'f', 6) + "\t";
+        text += QString::number(batchOriginalPoints[i].y, 'f', 6) + "\t";
+        text += QString::number(batchOriginalPoints[i].z, 'f', 6) + "\t";
+        
+        if (i < batchTransformedPoints.size()) {
+            text += QString::number(batchTransformedPoints[i].x, 'f', 6) + "\t";
+            text += QString::number(batchTransformedPoints[i].y, 'f', 6) + "\t";
+            text += QString::number(batchTransformedPoints[i].z, 'f', 6);
+        }
+        text += "\n";
+    }
+    
+    QApplication::clipboard()->setText(text);
 }

@@ -110,6 +110,7 @@
   <ItemGroup>
     <QtRcc Include="VTK930.qrc" />
     <QtMoc Include="VTK930.h" />
+    <ClCompile Include="GroupNameDialog.cpp" />
     <ClCompile Include="PointCloudInputDialog.cpp" />
     <ClCompile Include="PointPairDialog.cpp" />
     <ClCompile Include="TransformResultDialog.cpp" />
@@ -127,6 +128,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="TransformResultDialog.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="GroupNameDialog.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
