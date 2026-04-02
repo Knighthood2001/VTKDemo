@@ -83,4 +83,9 @@ private slots:
     void initOrientationMarker();
     void onAddPair();
     void onDeletePair();
+    void onClearLog();
+    void onExportLog();
+
+private:
+    void addLog(const QString& message, const QString& type = "信息");
 };

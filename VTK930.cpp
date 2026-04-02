@@ -5,6 +5,10 @@
 #include <QInputDialog>
 #include <QSplitter>
 #include <QLayout>
+#include <QDateTime>
+#include <QFile>
+#include <QTextStream>
+#include <QScrollBar>
 #include "PointCloudInputDialog.h"
 #include "PointPairDialog.h"
 #include "TransformResultDialog.h"
@@ -54,6 +58,8 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     connect(ui.addPairBtn, &QPushButton::clicked, this, &VTK930::onAddPair);
     connect(ui.deletePairBtn, &QPushButton::clicked, this, &VTK930::onDeletePair);
     connect(ui.viewTransformBtn, &QPushButton::clicked, this, &VTK930::onViewTransform);
+    connect(ui.clearLogBtn, &QPushButton::clicked, this, &VTK930::onClearLog);
+    connect(ui.exportLogBtn, &QPushButton::clicked, this, &VTK930::onExportLog);
 
     ui.pointTable->setColumnWidth(0, 40);
     ui.pointTable->setColumnWidth(1, 60);
@@ -65,6 +71,8 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
     ui.pairTable->setColumnWidth(1, 130);
     ui.pairTable->setColumnWidth(2, 100);
     ui.pairTable->setColumnWidth(3, 130);
+
+    addLog("系统启动完成", "成功");
 }
 
 VTK930::~VTK930() {}
@@ -484,6 +492,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
     TransformResultDialog* dialog = qobject_cast<TransformResultDialog*>(sender());
     if (!dialog) return;
 
+    addLog(QString("开始批量转换: %1 → %2").arg(QString::fromStdString(groupName)).arg(QString::fromStdString(targetGroup)), "信息");
+
     TransformationMatrix matAB, matBA;
     computeTransformBetween(dialog->getSelectedSourceGroup(), dialog->getSelectedTargetGroup(), matAB, matBA);
 
@@ -516,8 +526,11 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
     if (originalPoints.empty()) {
         QMessageBox::warning(this, QString::fromUtf8("警告"),
             QString::fromUtf8("分组 %1 中没有点！").arg(QString::fromStdString(groupName)));
+        addLog(QString("分组 %1 中没有点").arg(QString::fromStdString(groupName)), "警告");
         return;
     }
+
+    addLog(QString("批量转换完成: 共转换 %1 个点").arg(originalPoints.size()), "成功");
 
     QString suggestedName;
     if (useABMatrix) {
@@ -535,6 +548,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         QString newGroupName = nameDialog.getGroupName();
         std::string newGroupStr = newGroupName.toStdString();
 
+        addLog(QString("创建新分组: %1").arg(newGroupName), "信息");
+
         bool exists = false;
         for (const auto& pt : allPoints) {
             if (pt.groupName == newGroupStr) {
@@ -544,11 +559,13 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         }
 
         if (exists) {
+            addLog(QString("分组 %1 已存在，准备覆盖").arg(newGroupName), "警告");
             QMessageBox::StandardButton reply = QMessageBox::question(this,
                 QString::fromUtf8("确认"),
                 QString::fromUtf8("分组 %1 已存在，是否覆盖？").arg(newGroupName),
                 QMessageBox::Yes | QMessageBox::No);
             if (reply == QMessageBox::No) {
+                addLog("用户取消覆盖操作", "信息");
                 return;
             }
             std::vector<PointData> newPoints;
@@ -558,6 +575,7 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
                 }
             }
             allPoints = newPoints;
+            addLog(QString("已删除分组 %1 的旧数据").arg(newGroupName), "信息");
         }
 
         int idCounter = 0;
@@ -584,6 +602,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         updateGroupList();
         updatePointTable();
 
+        addLog(QString("已添加 %1 个点到分组 %2").arg(originalPoints.size()).arg(newGroupName), "成功");
+
         std::vector<Point3D> ptsForVisual;
         for (size_t i = 0; i < originalPoints.size(); ++i) {
             Point3D p;
@@ -598,6 +618,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
             useABMatrix ? 200 : 0, 
             useABMatrix ? 0 : 200, 
             newGroupStr);
+
+        addLog(QString("批量转换操作完成").arg(newGroupName), "成功");
     }
 }
 
@@ -764,4 +786,55 @@ TransformationMatrix VTK930::computeTransformBA() {
     result.translation = sourceCentroid - R * targetCentroid;
 
     return result;
+}
+
+void VTK930::addLog(const QString& message, const QString& type) {
+    QString timestamp = QDateTime::currentDateTime().toString("hh:mm:ss");
+    QString color;
+    
+    if (type == "错误") {
+        color = "red";
+    } else if (type == "警告") {
+        color = "orange";
+    } else if (type == "成功") {
+        color = "green";
+    } else {
+        color = "black";
+    }
+    
+    QString logEntry = QString("<span style='color:%1;'>[%2] <b>%3:</b> %4</span>")
+        .arg(color)
+        .arg(timestamp)
+        .arg(type)
+        .arg(message);
+    
+    ui.logTextEdit->append(logEntry);
+    
+    QScrollBar* scrollBar = ui.logTextEdit->verticalScrollBar();
+    scrollBar->setValue(scrollBar->maximum());
+}
+
+void VTK930::onClearLog() {
+    ui.logTextEdit->clear();
+    // addLog("日志已清空", "信息");
+}
+
+void VTK930::onExportLog() {
+    QString fileName = QFileDialog::getSaveFileName(this,
+        QStringLiteral("导出日志"),
+        "",
+        QStringLiteral("文本文件 (*.txt);;所有文件 (*.*)"));
+    
+    if (fileName.isEmpty()) return;
+    
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out.setCodec("UTF-8");
+        out << ui.logTextEdit->toPlainText();
+        file.close();
+        addLog(QString("日志已导出到: %1").arg(fileName), "成功");
+    } else {
+        addLog(QString("无法导出日志到: %1").arg(fileName), "错误");
+    }
 }
