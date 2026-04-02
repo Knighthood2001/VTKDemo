@@ -4,6 +4,7 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QGridLayout>
+#include <QTabWidget>
 
 TransformResultDialog::TransformResultDialog(const std::vector<std::string>& groups,
                                              const std::vector<std::pair<std::string, std::string>>& pairs,
@@ -11,21 +12,21 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     : QDialog(parent), allGroups(groups), availablePairs(pairs)
 {
     setWindowTitle(QStringLiteral("转换矩阵计算结果"));
-    setMinimumSize(750, 1000);
-    resize(800, 1050);
+    setMinimumSize(600, 700);
+    resize(650, 750);
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
     QGroupBox* selectGroup = new QGroupBox(QStringLiteral("选择分组"), this);
-    QHBoxLayout* selectLayout = new QHBoxLayout;
+    QGridLayout* selectLayout = new QGridLayout;
     
-    selectLayout->addWidget(new QLabel(QStringLiteral("源分组:"), this));
+    selectLayout->addWidget(new QLabel(QStringLiteral("源分组:"), this), 0, 0);
     sourceGroupCombo = new QComboBox(this);
-    selectLayout->addWidget(sourceGroupCombo);
+    selectLayout->addWidget(sourceGroupCombo, 0, 1);
     
-    selectLayout->addWidget(new QLabel(QStringLiteral("目标分组:"), this));
+    selectLayout->addWidget(new QLabel(QStringLiteral("目标分组:"), this), 0, 2);
     targetGroupCombo = new QComboBox(this);
-    selectLayout->addWidget(targetGroupCombo);
+    selectLayout->addWidget(targetGroupCombo, 0, 3);
     
     selectGroup->setLayout(selectLayout);
     mainLayout->addWidget(selectGroup);
@@ -33,112 +34,130 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     statusLabel = new QLabel(this);
     mainLayout->addWidget(statusLabel);
 
-    QGroupBox* abGroup = new QGroupBox(QStringLiteral("转换矩阵 (源→目标)"), this);
+    QHBoxLayout* actionLayout = new QHBoxLayout;
+    recomputeBtn = new QPushButton(QStringLiteral("计算"), this);
+    actionLayout->addStretch();
+    actionLayout->addWidget(recomputeBtn);
+    mainLayout->addLayout(actionLayout);
+
+    QTabWidget* tabWidget = new QTabWidget(this);
+
+    QWidget* matrixTab = new QWidget(tabWidget);
+    QVBoxLayout* matrixLayout = new QVBoxLayout(matrixTab);
+    
+    QGroupBox* abGroup = new QGroupBox(QStringLiteral("转换矩阵 (源→目标)"), matrixTab);
     QVBoxLayout* abLayout = new QVBoxLayout;
-    matrixABTable = new QTableWidget(4, 4, this);
+    matrixABTable = new QTableWidget(4, 4, matrixTab);
     matrixABTable->horizontalHeader()->setVisible(false);
     matrixABTable->verticalHeader()->setVisible(false);
     abLayout->addWidget(matrixABTable);
-    copyABBtn = new QPushButton(QStringLiteral("复制矩阵"), this);
+    copyABBtn = new QPushButton(QStringLiteral("复制矩阵"), matrixTab);
     abLayout->addWidget(copyABBtn);
     abGroup->setLayout(abLayout);
 
-    QGroupBox* baGroup = new QGroupBox(QStringLiteral("转换矩阵 (目标→源)"), this);
+    QGroupBox* baGroup = new QGroupBox(QStringLiteral("转换矩阵 (目标→源)"), matrixTab);
     QVBoxLayout* baLayout = new QVBoxLayout;
-    matrixBATable = new QTableWidget(4, 4, this);
+    matrixBATable = new QTableWidget(4, 4, matrixTab);
     matrixBATable->horizontalHeader()->setVisible(false);
     matrixBATable->verticalHeader()->setVisible(false);
     baLayout->addWidget(matrixBATable);
-    copyBABtn = new QPushButton(QStringLiteral("复制矩阵"), this);
+    copyBABtn = new QPushButton(QStringLiteral("复制矩阵"), matrixTab);
     baLayout->addWidget(copyBABtn);
     baGroup->setLayout(baLayout);
 
-    mainLayout->addWidget(abGroup);
-    mainLayout->addWidget(baGroup);
+    matrixLayout->addWidget(abGroup);
+    matrixLayout->addWidget(baGroup);
+    tabWidget->addTab(matrixTab, QStringLiteral("矩阵结果"));
 
-    QGroupBox* transformGroup = new QGroupBox(QStringLiteral("单点转换"), this);
-    QVBoxLayout* transformLayout = new QVBoxLayout;
+    QWidget* transformTab = new QWidget(tabWidget);
+    QVBoxLayout* transformLayout = new QVBoxLayout(transformTab);
+    
+    QGroupBox* singleGroup = new QGroupBox(QStringLiteral("单点转换"), transformTab);
+    QVBoxLayout* singleLayout = new QVBoxLayout;
     
     QHBoxLayout* inputLayout = new QHBoxLayout;
-    inputLayout->addWidget(new QLabel(QStringLiteral("输入点坐标:"), this));
-    inputLayout->addWidget(new QLabel(QStringLiteral("X:"), this));
-    inputX = new QLineEdit(this);
+    inputLayout->addWidget(new QLabel(QStringLiteral("输入点坐标:"), transformTab));
+    inputLayout->addWidget(new QLabel(QStringLiteral("X:"), transformTab));
+    inputX = new QLineEdit(transformTab);
     inputX->setPlaceholderText(QStringLiteral("0.0"));
     inputX->setMaximumWidth(80);
     inputLayout->addWidget(inputX);
-    inputLayout->addWidget(new QLabel(QStringLiteral("Y:"), this));
-    inputY = new QLineEdit(this);
+    inputLayout->addWidget(new QLabel(QStringLiteral("Y:"), transformTab));
+    inputY = new QLineEdit(transformTab);
     inputY->setPlaceholderText(QStringLiteral("0.0"));
     inputY->setMaximumWidth(80);
     inputLayout->addWidget(inputY);
-    inputLayout->addWidget(new QLabel(QStringLiteral("Z:"), this));
-    inputZ = new QLineEdit(this);
+    inputLayout->addWidget(new QLabel(QStringLiteral("Z:"), transformTab));
+    inputZ = new QLineEdit(transformTab);
     inputZ->setPlaceholderText(QStringLiteral("0.0"));
     inputZ->setMaximumWidth(80);
     inputLayout->addWidget(inputZ);
     inputLayout->addStretch();
-    transformLayout->addLayout(inputLayout);
+    singleLayout->addLayout(inputLayout);
     
-    transformBtn = new QPushButton(QStringLiteral("转换"), this);
-    transformLayout->addWidget(transformBtn);
+    transformBtn = new QPushButton(QStringLiteral("转换"), transformTab);
+    singleLayout->addWidget(transformBtn);
     
     QHBoxLayout* resultLayout = new QHBoxLayout;
-    resultLayout->addWidget(new QLabel(QStringLiteral("转换结果:"), this));
-    resultLabel = new QLabel(QStringLiteral("(等待输入...)"), this);
+    resultLayout->addWidget(new QLabel(QStringLiteral("转换结果:"), transformTab));
+    resultLabel = new QLabel(QStringLiteral("(等待输入...)"), transformTab);
     resultLabel->setStyleSheet(QStringLiteral("font-weight: bold; color: blue;"));
     resultLayout->addWidget(resultLabel);
     resultLayout->addStretch();
-    copyResultBtn = new QPushButton(QStringLiteral("复制结果"), this);
+    copyResultBtn = new QPushButton(QStringLiteral("复制结果"), transformTab);
     copyResultBtn->setEnabled(false);
     resultLayout->addWidget(copyResultBtn);
-    transformLayout->addLayout(resultLayout);
+    singleLayout->addLayout(resultLayout);
     
-    transformGroup->setLayout(transformLayout);
-    mainLayout->addWidget(transformGroup);
+    singleGroup->setLayout(singleLayout);
+    transformLayout->addWidget(singleGroup);
 
-    QGroupBox* batchGroup = new QGroupBox(QStringLiteral("批量转换"), this);
+    QGroupBox* batchGroup = new QGroupBox(QStringLiteral("批量转换"), transformTab);
     QVBoxLayout* batchLayout = new QVBoxLayout;
     
     QHBoxLayout* batchSelectLayout = new QHBoxLayout;
-    batchSelectLayout->addWidget(new QLabel(QStringLiteral("选择要转换的分组:"), this));
-    batchGroupCombo = new QComboBox(this);
+    batchSelectLayout->addWidget(new QLabel(QStringLiteral("选择要转换的分组:"), transformTab));
+    batchGroupCombo = new QComboBox(transformTab);
     batchSelectLayout->addWidget(batchGroupCombo);
     batchSelectLayout->addStretch();
     batchLayout->addLayout(batchSelectLayout);
     
     QHBoxLayout* matrixSelectLayout = new QHBoxLayout;
-    matrixSelectLayout->addWidget(new QLabel(QStringLiteral("选择转换矩阵:"), this));
-    useABRadio = new QRadioButton(QStringLiteral("源→目标 (A→B)"), this);
+    matrixSelectLayout->addWidget(new QLabel(QStringLiteral("选择转换矩阵:"), transformTab));
+    useABRadio = new QRadioButton(QStringLiteral("源→目标 (A→B)"), transformTab);
     useABRadio->setChecked(true);
-    useBARadio = new QRadioButton(QStringLiteral("目标→源 (B→A)"), this);
+    useBARadio = new QRadioButton(QStringLiteral("目标→源 (B→A)"), transformTab);
     matrixSelectLayout->addWidget(useABRadio);
     matrixSelectLayout->addWidget(useBARadio);
     matrixSelectLayout->addStretch();
     batchLayout->addLayout(matrixSelectLayout);
     
-    batchTransformBtn = new QPushButton(QStringLiteral("执行批量转换"), this);
+    batchTransformBtn = new QPushButton(QStringLiteral("执行批量转换"), transformTab);
     batchLayout->addWidget(batchTransformBtn);
     
-    batchResultTable = new QTableWidget(0, 7, this);
+    batchResultTable = new QTableWidget(0, 7, transformTab);
     batchResultTable->setHorizontalHeaderLabels(QStringList() 
         << QStringLiteral("序号") 
         << QStringLiteral("原始X") << QStringLiteral("原始Y") << QStringLiteral("原始Z")
         << QStringLiteral("转换X") << QStringLiteral("转换Y") << QStringLiteral("转换Z"));
     batchResultTable->horizontalHeader()->setStretchLastSection(true);
+    batchResultTable->setMaximumHeight(200);
     batchLayout->addWidget(batchResultTable);
     
-    copyBatchBtn = new QPushButton(QStringLiteral("复制所有结果"), this);
+    copyBatchBtn = new QPushButton(QStringLiteral("复制所有结果"), transformTab);
     copyBatchBtn->setEnabled(false);
     batchLayout->addWidget(copyBatchBtn);
     
     batchGroup->setLayout(batchLayout);
-    mainLayout->addWidget(batchGroup);
+    transformLayout->addWidget(batchGroup);
+
+    tabWidget->addTab(transformTab, QStringLiteral("坐标转换"));
+
+    mainLayout->addWidget(tabWidget);
 
     QHBoxLayout* btnLayout = new QHBoxLayout;
-    recomputeBtn = new QPushButton(QStringLiteral("计算"), this);
     closeBtn = new QPushButton(QStringLiteral("关闭"), this);
     btnLayout->addStretch();
-    btnLayout->addWidget(recomputeBtn);
     btnLayout->addWidget(closeBtn);
     mainLayout->addLayout(btnLayout);
 
