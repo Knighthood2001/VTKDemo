@@ -84,14 +84,14 @@ void VTK930::onOpen() {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
         new pcl::PointCloud<pcl::PointXYZ>());
     QString fileName = QFileDialog::getOpenFileName(this,
-        QString::fromUtf8("\xe6\x89\x93\xe5\xbc\x80\xe7\x82\xb9\xe4\xba\x91"), ".",
-        QString::fromUtf8("PCD \xe6\x96\x87\xe4\xbb\xb6(*.pcd)"));
+        QStringLiteral("打开点云"), ".",
+        QStringLiteral("PCD文件(*.pcd)"));
     if (fileName == "") return;
     pcl::io::loadPCDFile(fileName.toStdString(), *cloud);
 
     if (cloud->empty()) {
-        QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("点云文件为空！"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("点云文件为空！"));
         return;
     }
 
@@ -128,8 +128,9 @@ void VTK930::onLoad() {
             view->resetCamera();
             ui.openGLWidget->update();
 
-            QMessageBox::information(this, QString::fromUtf8("\xe6\x88\x90\xe5\x8a\x9f"),
-                QString::fromUtf8("\xe5\xb7\xb2\xe5\x8a\xa0\xe8\xbd\xbd %1 \xe4\xb8\xaa\xe7\x82\xb9\xe5\x88\xb0\xe5\x88\x86\xe7\xbb\x84 '%2'").arg(points.size()).arg(data.groupName));
+            //QMessageBox::information(this, QStringLiteral("成功"),
+            //    QStringLiteral("已加载 %1 个点到分组 '%2'").arg(points.size()).arg(data.groupName));
+            addLog(QString("已加载 %1 个点到分组 '%2'").arg(points.size()).arg(data.groupName), "成功");
         }
     }
 }
@@ -213,7 +214,7 @@ void VTK930::updatePointTable() {
     QString filter = ui.filterCombo->currentText();
     std::vector<PointData> filteredPoints;
 
-    if (filter == QString::fromUtf8("\xe5\x85\xa8\xe9\x83\xa8")) {
+    if (filter == QStringLiteral("全部")) {
         filteredPoints = allPoints;
     } else {
         for (const auto& p : allPoints) {
@@ -244,7 +245,7 @@ void VTK930::updateGroupList() {
 void VTK930::updateFilterCombo() {
     QString current = ui.filterCombo->currentText();
     ui.filterCombo->clear();
-    ui.filterCombo->addItem(QString::fromUtf8("\xe5\x85\xa8\xe9\x83\xa8"));
+    ui.filterCombo->addItem(QStringLiteral("全部"));
     for (const auto& pair : groupClouds) {
         ui.filterCombo->addItem(QString::fromStdString(pair.first));
     }
@@ -257,14 +258,14 @@ void VTK930::updateFilterCombo() {
 
 void VTK930::onAddGroup() {
     bool ok;
-    QString name = QInputDialog::getText(this, QString::fromUtf8("\xe6\xb7\xbb\xe5\x8a\xa0\xe5\x88\x86\xe7\xbb\x84"),
-        QString::fromUtf8("\xe8\xaf\xb7\xe8\xbe\x93\xe5\x85\xa5\xe5\x88\x86\xe7\xbb\x84\xe5\x90\x8d\xe7\xa7\xb0:"),
-        QLineEdit::Normal, QString::fromUtf8("\xe6\x96\xb0\xe5\x88\x86\xe7\xbb\x84"), &ok);
+    QString name = QInputDialog::getText(this, QStringLiteral("添加分组"),
+        QStringLiteral("请输入分组名称:"),
+        QLineEdit::Normal, QStringLiteral("新分组"), &ok);
     if (!ok || name.isEmpty()) return;
 
     if (groupClouds.find(name.toStdString()) != groupClouds.end()) {
-        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
-            QString::fromUtf8("\xe8\xaf\xa5\xe5\x88\x86\xe7\xbb\x84\xe5\xb7\xb2\xe5\xad\x98\xe5\x9c\xa8\xef\xbc\x81"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("该分组已存在！"));
         return;
     }
 
@@ -276,16 +277,16 @@ void VTK930::onAddGroup() {
 void VTK930::onDeleteGroup() {
     int row = ui.groupList->currentRow();
     if (row < 0) {
-        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
-            QString::fromUtf8("\xe8\xaf\xb7\xe9\x80\x89\xe6\x8b\xa9\xe4\xb8\x80\xe4\xb8\xaa\xe5\x88\x86\xe7\xbb\x84"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("请选择一个分组"));
         return;
     }
 
     QString groupName = ui.groupList->item(row)->text();
 
     QMessageBox::StandardButton reply = QMessageBox::question(this,
-        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4"),
-        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4\xe8\xa6\x81\xe5\x88\xa0\xe9\x99\xa4\xe5\x88\x86\xe7\xbb\x84 \"%1\" \xe5\x92\x8c\xe5\x85\xb6\xe6\x89\x80\xe6\x9c\x89\xe7\x82\xb9\xe5\x90\x97\xef\xbc\x9f").arg(groupName),
+        QStringLiteral("确认"),
+        QStringLiteral("确认要删除分组 \"%1\" 和其所有点吗？").arg(groupName),
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::No) return;
@@ -313,8 +314,8 @@ void VTK930::onAddPoint() {
 void VTK930::onDeletePoint() {
     int row = ui.pointTable->currentRow();
     if (row < 0) {
-        QMessageBox::warning(this, QString::fromUtf8("\xe8\xad\xa6\xe5\x91\x8a"),
-            QString::fromUtf8("\xe8\xaf\xb7\xe9\x80\x89\xe6\x8b\xa9\xe4\xb8\x80\xe4\xb8\xaa\xe7\x82\xb9"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("请选择一个点"));
         return;
     }
 
@@ -349,8 +350,8 @@ void VTK930::onDeletePoint() {
 
 void VTK930::onClearPoints() {
     QMessageBox::StandardButton reply = QMessageBox::question(this,
-        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4"),
-        QString::fromUtf8("\xe7\xa1\xae\xe8\xae\xa4\xe8\xa6\x81\xe6\xb8\x85\xe7\xa9\xba\xe6\x89\x80\xe6\x9c\x89\xe7\x82\xb9\xe5\x90\x97\xef\xbc\x9f"),
+        QStringLiteral("确认"),
+        QStringLiteral("确认要清空所有点吗？"),
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::No) return;
@@ -448,14 +449,14 @@ void VTK930::onAddPair() {
 void VTK930::onDeletePair() {
     int row = ui.pairTable->currentRow();
     if (row < 0) {
-        QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("请选择要删除的配对"));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("请选择要删除的配对"));
         return;
     }
 
     QMessageBox::StandardButton reply = QMessageBox::question(this,
-        QString::fromUtf8("确认"),
-        QString::fromUtf8("确认要删除选中的配对吗？"),
+        QStringLiteral("确认"),
+        QStringLiteral("确认要删除选中的配对吗？"),
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::No) return;
@@ -576,8 +577,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
     dialog->setBatchTransformResults(originalPoints, transformedPoints);
 
     if (originalPoints.empty()) {
-        QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("分组 %1 中没有点！").arg(QString::fromStdString(groupName)));
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("分组 %1 中没有点！").arg(QString::fromStdString(groupName)));
         addLog(QString("分组 %1 中没有点").arg(QString::fromStdString(groupName)), "警告");
         return;
     }
@@ -613,8 +614,8 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         if (exists) {
             addLog(QString("分组 %1 已存在，准备覆盖").arg(newGroupName), "警告");
             QMessageBox::StandardButton reply = QMessageBox::question(this,
-                QString::fromUtf8("确认"),
-                QString::fromUtf8("分组 %1 已存在，是否覆盖？").arg(newGroupName),
+                QStringLiteral("确认"),
+                QStringLiteral("分组 %1 已存在，是否覆盖？").arg(newGroupName),
                 QMessageBox::Yes | QMessageBox::No);
             if (reply == QMessageBox::No) {
                 addLog("用户取消覆盖操作", "信息");
@@ -706,8 +707,8 @@ void VTK930::computeTransformBetween(const std::string& sourceGroup, const std::
     }
 
     if (filteredPairs.size() < 3) {
-        QMessageBox::warning(this, QString::fromUtf8("警告"),
-            QString::fromUtf8("错误: %1 和 %2 之间只有 %3 对配对点，至少需要3对！")
+        QMessageBox::warning(this, QStringLiteral("警告"),
+            QStringLiteral("错误: %1 和 %2 之间只有 %3 对配对点，至少需要3对！")
                 .arg(QString::fromStdString(sourceGroup))
                 .arg(QString::fromStdString(targetGroup))
                 .arg(filteredPairs.size()));
