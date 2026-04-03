@@ -85,7 +85,9 @@ private slots:
     void onDeletePair();
     void onClearLog();
     void onExportLog();
-
+    void onSetPointSize();
+    
 private:
     void addLog(const QString& message, const QString& type = "信息");
+    int pointSize;
 };

@@ -21,7 +21,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 
-VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
+VTK930::VTK930(QWidget* parent) : QMainWindow(parent), pointSize(2) {
     ui.setupUi(this);
     initialVtkWidget();
 
@@ -51,6 +51,7 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent) {
 
     connect(ui.actionopen, SIGNAL(triggered()), this, SLOT(onOpen()));
     connect(ui.actionload, SIGNAL(triggered()), this, SLOT(onLoad()));
+    connect(ui.actionPointSize, SIGNAL(triggered()), this, SLOT(onSetPointSize()));
     connect(ui.addGroupBtn, &QPushButton::clicked, this, &VTK930::onAddGroup);
     connect(ui.deleteGroupBtn, &QPushButton::clicked, this, &VTK930::onDeleteGroup);
     connect(ui.addPointBtn, &QPushButton::clicked, this, &VTK930::onAddPoint);
@@ -97,6 +98,8 @@ void VTK930::onOpen() {
 
     view->removePointCloud("cloud");
     view->addPointCloud(cloud, "cloud");
+    view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+        pointSize, "cloud");
     
     // 计算点云边界框并设置相机
     pcl::PointXYZ minPt, maxPt;
@@ -173,6 +176,8 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
     view->addPointCloud(cloud, groupName);
     view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
         (double)r / 255.0, (double)g / 255.0, (double)b / 255.0, groupName);
+    view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+        pointSize, groupName);
 
     // 计算所有点云的边界框并设置相机
     double minX = std::numeric_limits<double>::max(), minY = std::numeric_limits<double>::max(), minZ = std::numeric_limits<double>::max();
@@ -889,5 +894,39 @@ void VTK930::onExportLog() {
         addLog(QString("日志已导出到: %1").arg(fileName), "成功");
     } else {
         addLog(QString("无法导出日志到: %1").arg(fileName), "错误");
+    }
+}
+
+void VTK930::onSetPointSize() {
+    bool ok;
+    int newSize = QInputDialog::getInt(this, 
+        QStringLiteral("设置点云点大小"), 
+        QStringLiteral("请输入点大小 (1-20):"), 
+        pointSize, 1, 20, 1, &ok);
+    
+    if (ok) {
+        pointSize = newSize;
+        
+        // 更新所有分组的点云渲染属性
+        for (const auto& pair : groupClouds) {
+            view->setPointCloudRenderingProperties(
+                pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 
+                pointSize, 
+                pair.first);
+        }
+        
+        // 如果有全局cloud，也更新
+        if (view->contains("cloud")) {
+            view->setPointCloudRenderingProperties(
+                pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 
+                pointSize, 
+                "cloud");
+        }
+        
+        ui.openGLWidget->update();
+        
+        ui.openGLWidget->renderWindow()->Render();
+        
+        addLog(QString("点云点大小已设置为: %1").arg(pointSize), "成功");
     }
 }

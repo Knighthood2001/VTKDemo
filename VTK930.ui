@@ -320,7 +320,14 @@
     <addaction name="actionopen"/>
     <addaction name="actionload"/>
    </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>设置</string>
+    </property>
+    <addaction name="actionPointSize"/>
+   </widget>
    <addaction name="menufile"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionopen">
@@ -331,6 +338,11 @@
   <action name="actionload">
    <property name="text">
     <string>加载</string>
+   </property>
+  </action>
+  <action name="actionPointSize">
+   <property name="text">
+    <string>点云点大小</string>
    </property>
   </action>
  </widget>
