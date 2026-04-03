@@ -9,12 +9,15 @@
 #include <QFile>
 #include <QTextStream>
 #include <QScrollBar>
+#include <limits>
+#include <algorithm>
 #include "PointCloudInputDialog.h"
 #include "PointPairDialog.h"
 #include "TransformResultDialog.h"
 #include "GroupNameDialog.h"
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkTextProperty.h>
+#include <pcl/common/common.h>
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 
@@ -86,10 +89,28 @@ void VTK930::onOpen() {
     if (fileName == "") return;
     pcl::io::loadPCDFile(fileName.toStdString(), *cloud);
 
+    if (cloud->empty()) {
+        QMessageBox::warning(this, QString::fromUtf8("警告"),
+            QString::fromUtf8("点云文件为空！"));
+        return;
+    }
+
     view->removePointCloud("cloud");
     view->addPointCloud(cloud, "cloud");
+    
+    // 计算点云边界框并设置相机
+    pcl::PointXYZ minPt, maxPt;
+    pcl::getMinMax3D(*cloud, minPt, maxPt);
+    double centerX = (minPt.x + maxPt.x) / 2.0;
+    double centerY = (minPt.y + maxPt.y) / 2.0;
+    double centerZ = (minPt.z + maxPt.z) / 2.0;
+    double size = std::max({maxPt.x - minPt.x, maxPt.y - minPt.y, maxPt.z - minPt.z});
+    
+    view->setCameraPosition(centerX, centerY, centerZ + size * 2, centerX, centerY, centerZ, 0, 1, 0);
     view->resetCamera();
     ui.openGLWidget->update();
+    
+    addLog(QString("已加载点云文件: %1, 共 %2 个点").arg(fileName).arg(cloud->size()), "成功");
 }
 
 void VTK930::onLoad() {
@@ -151,6 +172,37 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
     view->addPointCloud(cloud, groupName);
     view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
         (double)r / 255.0, (double)g / 255.0, (double)b / 255.0, groupName);
+
+    // 计算所有点云的边界框并设置相机
+    double minX = std::numeric_limits<double>::max(), minY = std::numeric_limits<double>::max(), minZ = std::numeric_limits<double>::max();
+    double maxX = std::numeric_limits<double>::lowest(), maxY = std::numeric_limits<double>::lowest(), maxZ = std::numeric_limits<double>::lowest();
+    bool hasPoints = false;
+    
+    for (const auto& pair : groupClouds) {
+        if (!pair.second->empty()) {
+            hasPoints = true;
+            for (const auto& pt : pair.second->points) {
+                minX = std::min(minX, (double)pt.x);
+                minY = std::min(minY, (double)pt.y);
+                minZ = std::min(minZ, (double)pt.z);
+                maxX = std::max(maxX, (double)pt.x);
+                maxY = std::max(maxY, (double)pt.y);
+                maxZ = std::max(maxZ, (double)pt.z);
+            }
+        }
+    }
+    
+    if (hasPoints) {
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        double centerZ = (minZ + maxZ) / 2.0;
+        double size = std::max({maxX - minX, maxY - minY, maxZ - minZ});
+        
+        view->setCameraPosition(centerX, centerY, centerZ + size * 2, centerX, centerY, centerZ, 0, 1, 0);
+    }
+    
+    view->resetCamera();
+    ui.openGLWidget->update();
 
     updatePointTable();
     updateGroupList();
