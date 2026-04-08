@@ -317,6 +317,12 @@
     <property name="title">
      <string>文件</string>
     </property>
+    <addaction name="actionNewProject"/>
+    <addaction name="actionOpenProject"/>
+    <addaction name="separator"/>
+    <addaction name="actionSaveProject"/>
+    <addaction name="actionSaveAsProject"/>
+    <addaction name="separator"/>
     <addaction name="actionopen"/>
     <addaction name="actionload"/>
    </widget>
@@ -343,6 +349,26 @@
   <action name="actionPointSize">
    <property name="text">
     <string>点云点大小</string>
+   </property>
+  </action>
+  <action name="actionNewProject">
+   <property name="text">
+    <string>新建项目</string>
+   </property>
+  </action>
+  <action name="actionOpenProject">
+   <property name="text">
+    <string>打开项目</string>
+   </property>
+  </action>
+  <action name="actionSaveProject">
+   <property name="text">
+    <string>保存项目</string>
+   </property>
+  </action>
+  <action name="actionSaveAsProject">
+   <property name="text">
+    <string>另存为...</string>
    </property>
   </action>
  </widget>

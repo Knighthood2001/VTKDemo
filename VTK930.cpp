@@ -7,6 +7,8 @@
 #include <QLayout>
 #include <QDateTime>
 #include <QFile>
+#include <QFileInfo>
+#include <QJsonDocument>
 #include <QTextStream>
 #include <QScrollBar>
 #include <limits>
@@ -21,7 +23,7 @@
 #include <Eigen/Dense>
 #include <Eigen/SVD>
 
-VTK930::VTK930(QWidget* parent) : QMainWindow(parent), pointSize(2) {
+VTK930::VTK930(QWidget* parent) : QMainWindow(parent), pointSize(2), currentProjectFile("") {
     ui.setupUi(this);
     initialVtkWidget();
 
@@ -52,6 +54,10 @@ VTK930::VTK930(QWidget* parent) : QMainWindow(parent), pointSize(2) {
     connect(ui.actionopen, SIGNAL(triggered()), this, SLOT(onOpen()));
     connect(ui.actionload, SIGNAL(triggered()), this, SLOT(onLoad()));
     connect(ui.actionPointSize, SIGNAL(triggered()), this, SLOT(onSetPointSize()));
+    connect(ui.actionNewProject, SIGNAL(triggered()), this, SLOT(onNewProject()));
+    connect(ui.actionOpenProject, SIGNAL(triggered()), this, SLOT(onOpenProject()));
+    connect(ui.actionSaveProject, SIGNAL(triggered()), this, SLOT(onSaveProject()));
+    connect(ui.actionSaveAsProject, SIGNAL(triggered()), this, SLOT(onSaveAsProject()));
     connect(ui.addGroupBtn, &QPushButton::clicked, this, &VTK930::onAddGroup);
     connect(ui.deleteGroupBtn, &QPushButton::clicked, this, &VTK930::onDeleteGroup);
     connect(ui.addPointBtn, &QPushButton::clicked, this, &VTK930::onAddPoint);
@@ -977,4 +983,303 @@ void VTK930::onPointPicked(vtkObject* caller, unsigned long eventId, void* clien
             self->addLog(info, "信息");
         }, Qt::QueuedConnection);
     }
+}
+
+void VTK930::onNewProject() {
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+        QStringLiteral("新建项目"),
+        QStringLiteral("是否保存当前项目?"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+    
+    if (reply == QMessageBox::Save) {
+        onSaveProject();
+    } else if (reply == QMessageBox::Cancel) {
+        return;
+    }
+    
+    groupClouds.clear();
+    allPoints.clear();
+    pointPairs.clear();
+    currentProjectFile.clear();
+    
+    if (view) {
+        view->removeAllPointClouds();
+        ui.openGLWidget->update();
+    }
+    
+    updateGroupList();
+    updatePointTable();
+    updateFilterCombo();
+    updatePairList();
+    
+    setWindowTitle(QStringLiteral("VTK930 - 新建项目"));
+    addLog("已创建新项目", "信息");
+}
+
+void VTK930::onOpenProject() {
+    QString fileName = QFileDialog::getOpenFileName(this,
+        QStringLiteral("打开项目"),
+        "",
+        QStringLiteral("VTK930项目 (*.vtkproj);;所有文件 (*.*)"));
+    
+    if (fileName.isEmpty()) return;
+    
+    if (loadProject(fileName)) {
+        currentProjectFile = fileName;
+        setWindowTitle(QStringLiteral("VTK930 - %1").arg(QFileInfo(fileName).baseName()));
+        addLog(QString("已打开项目: %1").arg(fileName), "成功");
+    } else {
+        QMessageBox::warning(this, 
+            QStringLiteral("错误"), 
+            QStringLiteral("无法打开项目文件"));
+    }
+}
+
+void VTK930::onSaveProject() {
+    if (currentProjectFile.isEmpty()) {
+        onSaveAsProject();
+        return;
+    }
+    
+    if (saveProject(currentProjectFile)) {
+        addLog(QString("项目已保存: %1").arg(currentProjectFile), "成功");
+    } else {
+        QMessageBox::warning(this, 
+            QStringLiteral("错误"), 
+            QStringLiteral("保存项目失败"));
+    }
+}
+
+void VTK930::onSaveAsProject() {
+    QString fileName = QFileDialog::getSaveFileName(this,
+        QStringLiteral("保存项目"),
+        "",
+        QStringLiteral("VTK930项目 (*.vtkproj)"));
+    
+    if (fileName.isEmpty()) return;
+    
+    if (!fileName.endsWith(".vtkproj", Qt::CaseInsensitive)) {
+        fileName += ".vtkproj";
+    }
+    
+    if (saveProject(fileName)) {
+        currentProjectFile = fileName;
+        setWindowTitle(QStringLiteral("VTK930 - %1").arg(QFileInfo(fileName).baseName()));
+        addLog(QString("项目已保存: %1").arg(fileName), "成功");
+    } else {
+        QMessageBox::warning(this, 
+            QStringLiteral("错误"), 
+            QStringLiteral("保存项目失败"));
+    }
+}
+
+bool VTK930::saveProject(const QString& fileName) {
+    QJsonObject root;
+    root["version"] = "1.0";
+    root["projectName"] = QFileInfo(fileName).baseName();
+    
+    QJsonObject settings;
+    settings["pointSize"] = pointSize;
+    QJsonArray bgColor;
+    bgColor.append(0.2);
+    bgColor.append(0.2);
+    bgColor.append(0.2);
+    settings["backgroundColor"] = bgColor;
+    root["settings"] = settings;
+    
+    QJsonArray groupsArray;
+    for (const auto& pair : groupClouds) {
+        QJsonObject groupObj;
+        groupObj["name"] = QString::fromStdString(pair.first);
+        
+        QJsonArray colorArray;
+        if (!pair.second->empty()) {
+            const auto& firstPoint = pair.second->points[0];
+            colorArray.append((int)firstPoint.r);
+            colorArray.append((int)firstPoint.g);
+            colorArray.append((int)firstPoint.b);
+        } else {
+            colorArray.append(255);
+            colorArray.append(255);
+            colorArray.append(255);
+        }
+        groupObj["color"] = colorArray;
+        
+        QJsonArray pointsArray;
+        for (const auto& pt : pair.second->points) {
+            QJsonObject pointObj;
+            pointObj["x"] = pt.x;
+            pointObj["y"] = pt.y;
+            pointObj["z"] = pt.z;
+            pointsArray.append(pointObj);
+        }
+        groupObj["points"] = pointsArray;
+        
+        groupsArray.append(groupObj);
+    }
+    root["groups"] = groupsArray;
+    
+    QJsonArray pairsArray;
+    for (const auto& pair : pointPairs) {
+        QJsonObject pairObj;
+        pairObj["sourceGroup"] = QString::fromStdString(pair.sourceGroup);
+        pairObj["targetGroup"] = QString::fromStdString(pair.targetGroup);
+        pairObj["sourceId"] = QString::fromStdString(pair.sourceId);
+        pairObj["targetId"] = QString::fromStdString(pair.targetId);
+        
+        QJsonObject sourcePointObj;
+        sourcePointObj["x"] = pair.sourcePoint.x;
+        sourcePointObj["y"] = pair.sourcePoint.y;
+        sourcePointObj["z"] = pair.sourcePoint.z;
+        pairObj["sourcePoint"] = sourcePointObj;
+        
+        QJsonObject targetPointObj;
+        targetPointObj["x"] = pair.targetPoint.x;
+        targetPointObj["y"] = pair.targetPoint.y;
+        targetPointObj["z"] = pair.targetPoint.z;
+        pairObj["targetPoint"] = targetPointObj;
+        
+        pairsArray.append(pairObj);
+    }
+    root["pointPairs"] = pairsArray;
+    
+    QJsonDocument doc(root);
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    
+    file.write(doc.toJson(QJsonDocument::Indented));
+    file.close();
+    
+    return true;
+}
+
+bool VTK930::loadProject(const QString& fileName) {
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return false;
+    }
+    
+    QByteArray data = file.readAll();
+    file.close();
+    
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &error);
+    if (error.error != QJsonParseError::NoError) {
+        qDebug() << "JSON解析错误:" << error.errorString();
+        return false;
+    }
+    
+    QJsonObject root = doc.object();
+    
+    QString version = root["version"].toString();
+    if (version != "1.0") {
+        QMessageBox::warning(this, 
+            QStringLiteral("版本不兼容"), 
+            QStringLiteral("不支持的项目文件版本: %1").arg(version));
+        return false;
+    }
+    
+    groupClouds.clear();
+    allPoints.clear();
+    pointPairs.clear();
+    
+    if (root.contains("settings")) {
+        QJsonObject settings = root["settings"].toObject();
+        pointSize = settings["pointSize"].toInt(2);
+    }
+    
+    if (root.contains("groups")) {
+        QJsonArray groupsArray = root["groups"].toArray();
+        
+        for (int i = 0; i < groupsArray.size(); ++i) {
+            QJsonObject groupObj = groupsArray[i].toObject();
+            QString groupName = groupObj["name"].toString();
+            
+            QJsonArray colorArray = groupObj["color"].toArray();
+            int r = colorArray[0].toInt(255);
+            int g = colorArray[1].toInt(255);
+            int b = colorArray[2].toInt(255);
+            
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>());
+            
+            QJsonArray pointsArray = groupObj["points"].toArray();
+            for (int j = 0; j < pointsArray.size(); ++j) {
+                QJsonObject ptObj = pointsArray[j].toObject();
+                pcl::PointXYZRGB pt;
+                pt.x = (float)ptObj["x"].toDouble();
+                pt.y = (float)ptObj["y"].toDouble();
+                pt.z = (float)ptObj["z"].toDouble();
+                pt.r = r;
+                pt.g = g;
+                pt.b = b;
+                cloud->points.push_back(pt);
+                
+                PointData pd;
+                pd.id = std::to_string(j + 1);
+                pd.x = pt.x;
+                pd.y = pt.y;
+                pd.z = pt.z;
+                pd.groupName = groupName.toStdString();
+                pd.colorR = r;
+                pd.colorG = g;
+                pd.colorB = b;
+                allPoints.push_back(pd);
+            }
+            
+            groupClouds[groupName.toStdString()] = cloud;
+            
+            if (view) {
+                view->removePointCloud(groupName.toStdString());
+                view->addPointCloud(cloud, groupName.toStdString());
+                view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_COLOR,
+                    (double)r / 255.0, (double)g / 255.0, (double)b / 255.0, groupName.toStdString());
+                view->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE,
+                    pointSize, groupName.toStdString());
+            }
+        }
+    }
+    
+    if (root.contains("pointPairs")) {
+        QJsonArray pairsArray = root["pointPairs"].toArray();
+        
+        for (int i = 0; i < pairsArray.size(); ++i) {
+            QJsonObject pairObj = pairsArray[i].toObject();
+            
+            PointPair pair;
+            pair.sourceGroup = pairObj["sourceGroup"].toString().toStdString();
+            pair.targetGroup = pairObj["targetGroup"].toString().toStdString();
+            pair.sourceId = pairObj["sourceId"].toString().toStdString();
+            pair.targetId = pairObj["targetId"].toString().toStdString();
+            
+            QJsonObject sourcePtObj = pairObj["sourcePoint"].toObject();
+            pair.sourcePoint.x = (float)sourcePtObj["x"].toDouble();
+            pair.sourcePoint.y = (float)sourcePtObj["y"].toDouble();
+            pair.sourcePoint.z = (float)sourcePtObj["z"].toDouble();
+            pair.sourcePoint.id = pair.sourceId;
+            pair.sourcePoint.groupName = pair.sourceGroup;
+            
+            QJsonObject targetPtObj = pairObj["targetPoint"].toObject();
+            pair.targetPoint.x = (float)targetPtObj["x"].toDouble();
+            pair.targetPoint.y = (float)targetPtObj["y"].toDouble();
+            pair.targetPoint.z = (float)targetPtObj["z"].toDouble();
+            pair.targetPoint.id = pair.targetId;
+            pair.targetPoint.groupName = pair.targetGroup;
+            
+            pointPairs.push_back(pair);
+        }
+    }
+    
+    if (view) {
+        view->resetCamera();
+        ui.openGLWidget->update();
+    }
+    
+    updateGroupList();
+    updatePointTable();
+    updateFilterCombo();
+    updatePairList();
+    
+    return true;
 }

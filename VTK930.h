@@ -15,6 +15,10 @@
 #include <string>
 #include <vector>
 #include <QTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
 #include <vtkCamera.h>
 #include <vtkRenderer.h>
 #include <vtkCallbackCommand.h>
@@ -92,8 +96,15 @@ private slots:
     void onSetPointSize();
     void setupPointPicking();
     static void onPointPicked(vtkObject* caller, unsigned long eventId, void* clientData, void* callData);
+    void onNewProject();
+    void onOpenProject();
+    void onSaveProject();
+    void onSaveAsProject();
     
 private:
     void addLog(const QString& message, const QString& type = "信息");
     int pointSize;
+    QString currentProjectFile;
+    bool saveProject(const QString& fileName);
+    bool loadProject(const QString& fileName);
 };
