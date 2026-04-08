@@ -1273,6 +1273,41 @@ bool VTK930::loadProject(const QString& fileName) {
     
     if (view) {
         view->resetCamera();
+        
+        // 计算所有点云的边界框并设置相机
+        double minX = std::numeric_limits<double>::max(), minY = std::numeric_limits<double>::max(), minZ = std::numeric_limits<double>::max();
+        double maxX = std::numeric_limits<double>::lowest(), maxY = std::numeric_limits<double>::lowest(), maxZ = std::numeric_limits<double>::lowest();
+        bool hasPoints = false;
+        
+        for (const auto& pair : groupClouds) {
+            if (!pair.second->empty()) {
+                hasPoints = true;
+                for (const auto& pt : pair.second->points) {
+                    minX = std::min(minX, (double)pt.x);
+                    minY = std::min(minY, (double)pt.y);
+                    minZ = std::min(minZ, (double)pt.z);
+                    maxX = std::max(maxX, (double)pt.x);
+                    maxY = std::max(maxY, (double)pt.y);
+                    maxZ = std::max(maxZ, (double)pt.z);
+                }
+            }
+        }
+        
+        if (hasPoints) {
+            double centerX = (minX + maxX) / 2.0;
+            double centerY = (minY + maxY) / 2.0;
+            double centerZ = (minZ + maxZ) / 2.0;
+            double sizeX = maxX - minX;
+            double sizeY = maxY - minY;
+            double sizeZ = maxZ - minZ;
+            double maxSize = std::max({sizeX, sizeY, sizeZ});
+            
+            if (maxSize > 0) {
+                view->setCameraPosition(centerX, centerY, centerZ + maxSize * 2,
+                                        centerX, centerY, centerZ, 0, 1, 0);
+            }
+        }
+        
         ui.openGLWidget->update();
     }
     
