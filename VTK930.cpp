@@ -390,6 +390,9 @@ void VTK930::initialVtkWidget()
 
     view->setupInteractor(ui.openGLWidget->interactor(), ui.openGLWidget->renderWindow());
     ui.openGLWidget->setRenderWindow(view->getRenderWindow());
+    
+    // 初始化点选器
+    setupPointPicking();
 
     QTimer::singleShot(50, this, &VTK930::initOrientationMarker);
 
@@ -928,5 +931,50 @@ void VTK930::onSetPointSize() {
         ui.openGLWidget->renderWindow()->Render();
         
         addLog(QString("点云点大小已设置为: %1").arg(pointSize), "成功");
+    }
+}
+
+void VTK930::setupPointPicking() {
+    if (!view || !ui.openGLWidget->interactor())
+        return;
+
+    pointPicker = vtkPointPicker::New();
+
+    vtkRenderWindowInteractor* interactor = ui.openGLWidget->interactor();
+    interactor->SetPicker(pointPicker);
+
+    vtkSmartPointer<vtkCallbackCommand> callback = vtkSmartPointer<vtkCallbackCommand>::New();
+    callback->SetCallback(VTK930::onPointPicked);
+    callback->SetClientData(this);
+    
+    interactor->AddObserver(vtkCommand::LeftButtonPressEvent, callback);
+    
+    addLog("点选功能已启用：左键点击选择点", "信息");
+}
+
+void VTK930::onPointPicked(vtkObject* caller, unsigned long eventId, void* clientData, void* callData) {
+    VTK930* self = static_cast<VTK930*>(clientData);
+    if (!self || !self->pointPicker)
+        return;
+
+    vtkRenderWindowInteractor* interactor = static_cast<vtkRenderWindowInteractor*>(caller);
+    if (!interactor)
+        return;
+
+    int* pos = interactor->GetEventPosition();
+    self->pointPicker->Pick(pos[0], pos[1], 0, self->view->getRenderWindow()->GetRenderers()->GetFirstRenderer());
+
+    if (self->pointPicker->GetPointId() != -1) {
+        double* pickedPos = self->pointPicker->GetPickPosition();
+
+        QString info = QString("选中点 ID: %1, 坐标: (%2, %3, %4)")
+                           .arg(self->pointPicker->GetPointId())
+                           .arg(pickedPos[0], 0, 'f', 3)
+                           .arg(pickedPos[1], 0, 'f', 3)
+                           .arg(pickedPos[2], 0, 'f', 3);
+        
+        QMetaObject::invokeMethod(self, [self, info]() {
+            self->addLog(info, "信息");
+        }, Qt::QueuedConnection);
     }
 }

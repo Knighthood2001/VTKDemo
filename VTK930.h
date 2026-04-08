@@ -17,6 +17,8 @@
 #include <QTimer>
 #include <vtkCamera.h>
 #include <vtkRenderer.h>
+#include <vtkCallbackCommand.h>
+#include <vtkPointPicker.h>
 
 class PointCloudInputDialog;
 #include "PointPairDialog.h"
@@ -55,6 +57,8 @@ private:
     std::map<std::string, pcl::PointCloud<pcl::PointXYZRGB>::Ptr> groupClouds;
     std::vector<PointData> allPoints;
     std::vector<PointPair> pointPairs;
+    vtkSmartPointer<vtkRenderer> renderer_;
+    vtkPointPicker* pointPicker;
     vtkSmartPointer<vtkOrientationMarkerWidget> markerWidget_;
     void initialVtkWidget();
     void addPointsToVisualizer(const std::vector<Point3D>& points, int r, int g, int b, const std::string& groupName);
@@ -86,6 +90,8 @@ private slots:
     void onClearLog();
     void onExportLog();
     void onSetPointSize();
+    void setupPointPicking();
+    static void onPointPicked(vtkObject* caller, unsigned long eventId, void* clientData, void* callData);
     
 private:
     void addLog(const QString& message, const QString& type = "信息");
