@@ -1,0 +1,155 @@
+{
+    "groups": [
+        {
+            "color": [
+                255,
+                0,
+                0
+            ],
+            "name": "1",
+            "points": [
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 0
+                },
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                },
+                {
+                    "x": 2,
+                    "y": 2,
+                    "z": 1
+                },
+                {
+                    "x": 3,
+                    "y": 3,
+                    "z": 3
+                },
+                {
+                    "x": 3,
+                    "y": 9,
+                    "z": 2
+                },
+                {
+                    "x": 4,
+                    "y": 6,
+                    "z": 7
+                }
+            ]
+        },
+        {
+            "color": [
+                85,
+                255,
+                255
+            ],
+            "name": "2",
+            "points": [
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 1
+                },
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 2
+                },
+                {
+                    "x": 2,
+                    "y": 2,
+                    "z": 2
+                },
+                {
+                    "x": 3,
+                    "y": 3,
+                    "z": 4
+                },
+                {
+                    "x": 5,
+                    "y": 2,
+                    "z": 0
+                }
+            ]
+        }
+    ],
+    "pointPairs": [
+        {
+            "sourceGroup": "1",
+            "sourceId": "0",
+            "sourcePoint": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+            },
+            "targetGroup": "2",
+            "targetId": "6",
+            "targetPoint": {
+                "x": 1,
+                "y": 0,
+                "z": 1
+            }
+        },
+        {
+            "sourceGroup": "1",
+            "sourceId": "1",
+            "sourcePoint": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "targetGroup": "2",
+            "targetId": "7",
+            "targetPoint": {
+                "x": 1,
+                "y": 1,
+                "z": 2
+            }
+        },
+        {
+            "sourceGroup": "1",
+            "sourceId": "2",
+            "sourcePoint": {
+                "x": 2,
+                "y": 2,
+                "z": 1
+            },
+            "targetGroup": "2",
+            "targetId": "8",
+            "targetPoint": {
+                "x": 2,
+                "y": 2,
+                "z": 2
+            }
+        },
+        {
+            "sourceGroup": "1",
+            "sourceId": "3",
+            "sourcePoint": {
+                "x": 3,
+                "y": 3,
+                "z": 3
+            },
+            "targetGroup": "2",
+            "targetId": "9",
+            "targetPoint": {
+                "x": 3,
+                "y": 3,
+                "z": 4
+            }
+        }
+    ],
+    "projectName": "2",
+    "settings": {
+        "backgroundColor": [
+            0.2,
+            0.2,
+            0.2
+        ],
+        "pointSize": 4
+    },
+    "version": "1.0"
+}

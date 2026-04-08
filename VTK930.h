@@ -77,7 +77,8 @@ private:
     std::vector<std::pair<std::string, std::string>> getAvailablePairs() const;
     void onViewTransform();
     void onRecomputeTransform(const std::string& sourceGroup, const std::string& targetGroup);
-    void onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix);
+    void onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix,
+                         int colorR, int colorG, int colorB);
 
 private slots:
     void onOpen();

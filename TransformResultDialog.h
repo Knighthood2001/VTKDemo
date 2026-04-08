@@ -10,6 +10,8 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QRadioButton>
+#include <QColorDialog>
+#include <QFrame>
 #include <Eigen/Dense>
 #include "PointPairDialog.h"
 
@@ -24,10 +26,14 @@ public:
 
     std::string getSelectedSourceGroup() const;
     std::string getSelectedTargetGroup() const;
+    int getBatchColorR() const { return batchColorR; }
+    int getBatchColorG() const { return batchColorG; }
+    int getBatchColorB() const { return batchColorB; }
 
 signals:
     void recomputeRequested(const std::string& sourceGroup, const std::string& targetGroup);
-    void batchTransformRequested(const std::string& sourceGroup, const std::string& targetGroup, bool useABMatrix);
+    void batchTransformRequested(const std::string& sourceGroup, const std::string& targetGroup, 
+                                bool useABMatrix, int colorR, int colorG, int colorB);
 
 public slots:
     void setBatchTransformResults(const std::vector<Point3D>& originalPoints, const std::vector<Point3D>& transformedPoints);
@@ -41,6 +47,7 @@ private slots:
     void onCopyResult();
     void onBatchTransform();
     void onCopyBatchResults();
+    void onSelectBatchColor();
 
 private:
     void copyMatrixToClipboard(const Eigen::Matrix4d& mat);
@@ -70,9 +77,15 @@ public:
     QComboBox* batchGroupCombo;
     QRadioButton* useABRadio;
     QRadioButton* useBARadio;
+    QPushButton* batchColorBtn;
+    QFrame* batchColorPreview;
     QPushButton* batchTransformBtn;
     QTableWidget* batchResultTable;
     QPushButton* copyBatchBtn;
+    
+    int batchColorR;
+    int batchColorG;
+    int batchColorB;
 
     Eigen::Matrix4d currentMatAB;
     Eigen::Matrix4d currentMatBA;

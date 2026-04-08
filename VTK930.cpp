@@ -530,7 +530,10 @@ void VTK930::onViewTransform() {
     connect(&dialog, &TransformResultDialog::recomputeRequested,
             this, &VTK930::onRecomputeTransform);
     connect(&dialog, &TransformResultDialog::batchTransformRequested,
-            this, &VTK930::onBatchTransform);
+            [this](const std::string& groupName, const std::string& targetGroup, bool useABMatrix, 
+                   int colorR, int colorG, int colorB) {
+                this->onBatchTransform(groupName, targetGroup, useABMatrix, colorR, colorG, colorB);
+            });
 
     dialog.exec();
 }
@@ -555,14 +558,12 @@ void VTK930::onRecomputeTransform(const std::string& sourceGroup, const std::str
     }
 }
 
-void VTK930::onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix) {
-    TransformResultDialog* dialog = qobject_cast<TransformResultDialog*>(sender());
-    if (!dialog) return;
-
+void VTK930::onBatchTransform(const std::string& groupName, const std::string& targetGroup, bool useABMatrix,
+                              int colorR, int colorG, int colorB) {
     addLog(QString("开始批量转换: %1 → %2").arg(QString::fromStdString(groupName)).arg(QString::fromStdString(targetGroup)), "信息");
 
     TransformationMatrix matAB, matBA;
-    computeTransformBetween(dialog->getSelectedSourceGroup(), dialog->getSelectedTargetGroup(), matAB, matBA);
+    computeTransformBetween(groupName, targetGroup, matAB, matBA);
 
     Eigen::Matrix4d matToUse = useABMatrix ? matAB.toMatrix() : matBA.toMatrix();
 
@@ -588,8 +589,6 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         }
     }
 
-    dialog->setBatchTransformResults(originalPoints, transformedPoints);
-
     if (originalPoints.empty()) {
         QMessageBox::warning(this, QStringLiteral("警告"),
             QStringLiteral("分组 %1 中没有点！").arg(QString::fromStdString(groupName)));
@@ -599,16 +598,9 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
 
     addLog(QString("批量转换完成: 共转换 %1 个点").arg(originalPoints.size()), "成功");
 
-    QString suggestedName;
-    if (useABMatrix) {
-        suggestedName = QString("%1_to_%2")
-            .arg(QString::fromStdString(groupName))
-            .arg(QString::fromStdString(dialog->getSelectedTargetGroup()));
-    } else {
-        suggestedName = QString("%1_to_%2")
-            .arg(QString::fromStdString(groupName))
-            .arg(QString::fromStdString(dialog->getSelectedSourceGroup()));
-    }
+    QString suggestedName = QString("%1_to_%2")
+        .arg(QString::fromStdString(groupName))
+        .arg(QString::fromStdString(targetGroup));
 
     GroupNameDialog nameDialog(suggestedName, this);
     if (nameDialog.exec() == QDialog::Accepted) {
@@ -654,15 +646,9 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
             newPt.z = static_cast<float>(transformedPoints[i].z);
             newPt.groupName = newGroupStr;
             
-            if (useABMatrix) {
-                newPt.colorR = 0;
-                newPt.colorG = 200;
-                newPt.colorB = 0;
-            } else {
-                newPt.colorR = 200;
-                newPt.colorG = 0;
-                newPt.colorB = 200;
-            }
+            newPt.colorR = colorR;
+            newPt.colorG = colorG;
+            newPt.colorB = colorB;
             allPoints.push_back(newPt);
         }
 
@@ -681,9 +667,9 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
         }
 
         addPointsToVisualizer(ptsForVisual, 
-            useABMatrix ? 0 : 200, 
-            useABMatrix ? 200 : 0, 
-            useABMatrix ? 0 : 200, 
+            colorR, 
+            colorG, 
+            colorB, 
             newGroupStr);
 
         addLog(QString("批量转换操作完成").arg(newGroupName), "成功");

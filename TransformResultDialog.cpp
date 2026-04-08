@@ -132,6 +132,17 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     matrixSelectLayout->addStretch();
     batchLayout->addLayout(matrixSelectLayout);
     
+    QHBoxLayout* colorSelectLayout = new QHBoxLayout;
+    colorSelectLayout->addWidget(new QLabel(QStringLiteral("选择颜色:"), transformTab));
+    batchColorBtn = new QPushButton(QStringLiteral("选择颜色"), transformTab);
+    batchColorPreview = new QFrame(transformTab);
+    batchColorPreview->setFixedSize(30, 20);
+    batchColorPreview->setStyleSheet("background-color: rgb(0, 200, 0);");
+    colorSelectLayout->addWidget(batchColorBtn);
+    colorSelectLayout->addWidget(batchColorPreview);
+    colorSelectLayout->addStretch();
+    batchLayout->addLayout(colorSelectLayout);
+    
     batchTransformBtn = new QPushButton(QStringLiteral("执行批量转换"), transformTab);
     batchLayout->addWidget(batchTransformBtn);
     
@@ -172,6 +183,10 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
         batchGroupCombo->addItem(QString::fromStdString(g));
     }
 
+    batchColorR = 0;
+    batchColorG = 200;
+    batchColorB = 0;
+
     connect(sourceGroupCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &TransformResultDialog::onGroupSelectionChanged);
     connect(targetGroupCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -184,6 +199,7 @@ TransformResultDialog::TransformResultDialog(const std::vector<std::string>& gro
     connect(copyResultBtn, &QPushButton::clicked, this, &TransformResultDialog::onCopyResult);
     connect(batchTransformBtn, &QPushButton::clicked, this, &TransformResultDialog::onBatchTransform);
     connect(copyBatchBtn, &QPushButton::clicked, this, &TransformResultDialog::onCopyBatchResults);
+    connect(batchColorBtn, &QPushButton::clicked, this, &TransformResultDialog::onSelectBatchColor);
 }
 
 TransformResultDialog::~TransformResultDialog() {}
@@ -258,6 +274,17 @@ void TransformResultDialog::copyMatrixToClipboard(const Eigen::Matrix4d& mat) {
     QApplication::clipboard()->setText(text);
 }
 
+void TransformResultDialog::onSelectBatchColor() {
+    QColor color = QColorDialog::getColor(QColor(batchColorR, batchColorG, batchColorB), this);
+    if (color.isValid()) {
+        batchColorR = color.red();
+        batchColorG = color.green();
+        batchColorB = color.blue();
+        batchColorPreview->setStyleSheet(QString("background-color: rgb(%1, %2, %3);")
+            .arg(batchColorR).arg(batchColorG).arg(batchColorB));
+    }
+}
+
 void TransformResultDialog::onCopyAB() {
     copyMatrixToClipboard(currentMatAB);
 }
@@ -327,7 +354,8 @@ void TransformResultDialog::onBatchTransform() {
     
     emit batchTransformRequested(selectedGroup.toStdString(), 
                                   targetGroupCombo->currentText().toStdString(),
-                                  useABRadio->isChecked());
+                                  useABRadio->isChecked(),
+                                  batchColorR, batchColorG, batchColorB);
 }
 
 void TransformResultDialog::setBatchTransformResults(const std::vector<Point3D>& originalPoints, 
