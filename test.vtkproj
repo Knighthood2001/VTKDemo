@@ -43,48 +43,8 @@
         {
             "color": [
                 0,
-                200,
-                0
-            ],
-            "name": "1_to_2",
-            "points": [
-                {
-                    "x": 1,
-                    "y": -1.6653345369377348e-16,
-                    "z": 1
-                },
-                {
-                    "x": 1,
-                    "y": 1,
-                    "z": 2
-                },
-                {
-                    "x": 2,
-                    "y": 2,
-                    "z": 2
-                },
-                {
-                    "x": 3,
-                    "y": 3,
-                    "z": 4
-                },
-                {
-                    "x": 3,
-                    "y": 9,
-                    "z": 3
-                },
-                {
-                    "x": 4,
-                    "y": 6,
-                    "z": 8
-                }
-            ]
-        },
-        {
-            "color": [
-                85,
                 255,
-                255
+                0
             ],
             "name": "2",
             "points": [
@@ -119,14 +79,14 @@
     "pointPairs": [
         {
             "sourceGroup": "1",
-            "sourceId": "0",
+            "sourceId": "1",
             "sourcePoint": {
                 "x": 1,
                 "y": 0,
                 "z": 0
             },
             "targetGroup": "2",
-            "targetId": "6",
+            "targetId": "7",
             "targetPoint": {
                 "x": 1,
                 "y": 0,
@@ -135,33 +95,17 @@
         },
         {
             "sourceGroup": "1",
-            "sourceId": "1",
-            "sourcePoint": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-            },
-            "targetGroup": "2",
-            "targetId": "7",
-            "targetPoint": {
-                "x": 1,
-                "y": 1,
-                "z": 2
-            }
-        },
-        {
-            "sourceGroup": "1",
             "sourceId": "2",
             "sourcePoint": {
-                "x": 2,
-                "y": 2,
+                "x": 1,
+                "y": 1,
                 "z": 1
             },
             "targetGroup": "2",
             "targetId": "8",
             "targetPoint": {
-                "x": 2,
-                "y": 2,
+                "x": 1,
+                "y": 1,
                 "z": 2
             }
         },
@@ -169,16 +113,16 @@
             "sourceGroup": "1",
             "sourceId": "3",
             "sourcePoint": {
-                "x": 3,
-                "y": 3,
-                "z": 3
+                "x": 2,
+                "y": 2,
+                "z": 1
             },
             "targetGroup": "2",
             "targetId": "9",
             "targetPoint": {
-                "x": 3,
-                "y": 3,
-                "z": 4
+                "x": 2,
+                "y": 2,
+                "z": 2
             }
         }
     ],
@@ -189,7 +133,7 @@
             0.2,
             0.2
         ],
-        "pointSize": 4
+        "pointSize": 2
     },
     "version": "1.0"
 }

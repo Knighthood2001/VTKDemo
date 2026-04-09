@@ -134,6 +134,22 @@ void VTK930::onLoad() {
 
         if (!points.empty()) {
             addPointsToVisualizer(points, data.r, data.g, data.b, data.groupName.toStdString());
+            
+            int startId = allPoints.size() + 1;
+            for (size_t i = 0; i < points.size(); ++i) {
+                PointData pd;
+                pd.id = std::to_string(startId + i);
+                pd.x = static_cast<float>(points[i].x);
+                pd.y = static_cast<float>(points[i].y);
+                pd.z = static_cast<float>(points[i].z);
+                pd.groupName = data.groupName.toStdString();
+                pd.colorR = data.r;
+                pd.colorG = data.g;
+                pd.colorB = data.b;
+                allPoints.push_back(pd);
+            }
+            
+            updatePointTable();
             view->resetCamera();
             ui.openGLWidget->update();
 
@@ -155,7 +171,6 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
         cloud = groupClouds[groupName];
     }
 
-    int startId = allPoints.size();
     for (const auto& p : points) {
         pcl::PointXYZRGB point;
         point.x = p.x;
@@ -165,17 +180,6 @@ void VTK930::addPointsToVisualizer(const std::vector<Point3D>& points, int r, in
         point.g = g;
         point.b = b;
         cloud->points.push_back(point);
-
-        PointData pd;
-        pd.id = std::to_string(startId++);
-        pd.x = p.x;
-        pd.y = p.y;
-        pd.z = p.z;
-        pd.groupName = groupName;
-        pd.colorR = r;
-        pd.colorG = g;
-        pd.colorB = b;
-        allPoints.push_back(pd);
     }
 
     view->removePointCloud(groupName);
@@ -627,6 +631,12 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
                 addLog("用户取消覆盖操作", "信息");
                 return;
             }
+            
+            if (groupClouds.find(newGroupStr) != groupClouds.end()) {
+                groupClouds[newGroupStr]->points.clear();
+                view->removePointCloud(newGroupStr);
+            }
+            
             std::vector<PointData> newPoints;
             for (const auto& pt : allPoints) {
                 if (pt.groupName != newGroupStr) {
