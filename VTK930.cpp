@@ -672,6 +672,12 @@ void VTK930::onBatchTransform(const std::string& groupName, const std::string& t
             colorB, 
             newGroupStr);
 
+        for (const auto& pair : groupClouds) {
+            if (!pair.second->empty() && pair.first != newGroupStr) {
+                view->updatePointCloud<pcl::PointXYZRGB>(pair.second, pair.first);
+            }
+        }
+
         addLog(QString("批量转换操作完成").arg(newGroupName), "成功");
     }
 }
