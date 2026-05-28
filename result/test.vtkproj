@@ -1,0 +1,124 @@
+{
+    "groups": [
+        {
+            "color": [
+                0,
+                170,
+                255
+            ],
+            "name": "frame1",
+            "points": [
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 0
+                },
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                },
+                {
+                    "x": 2,
+                    "y": 2,
+                    "z": 1
+                },
+                {
+                    "x": 3,
+                    "y": 3,
+                    "z": 3
+                }
+            ]
+        },
+        {
+            "color": [
+                255,
+                0,
+                0
+            ],
+            "name": "frame2",
+            "points": [
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 1
+                },
+                {
+                    "x": 1,
+                    "y": 1,
+                    "z": 2
+                },
+                {
+                    "x": 2,
+                    "y": 2,
+                    "z": 2
+                },
+                {
+                    "x": 3,
+                    "y": 3,
+                    "z": 4
+                }
+            ]
+        }
+    ],
+    "pointPairs": [
+        {
+            "sourceGroup": "frame1",
+            "sourceId": "1",
+            "sourcePoint": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+            },
+            "targetGroup": "frame2",
+            "targetId": "5",
+            "targetPoint": {
+                "x": 1,
+                "y": 0,
+                "z": 1
+            }
+        },
+        {
+            "sourceGroup": "frame1",
+            "sourceId": "2",
+            "sourcePoint": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "targetGroup": "frame2",
+            "targetId": "6",
+            "targetPoint": {
+                "x": 1,
+                "y": 1,
+                "z": 2
+            }
+        },
+        {
+            "sourceGroup": "frame1",
+            "sourceId": "3",
+            "sourcePoint": {
+                "x": 2,
+                "y": 2,
+                "z": 1
+            },
+            "targetGroup": "frame2",
+            "targetId": "7",
+            "targetPoint": {
+                "x": 2,
+                "y": 2,
+                "z": 2
+            }
+        }
+    ],
+    "projectName": "test",
+    "settings": {
+        "backgroundColor": [
+            0.2,
+            0.2,
+            0.2
+        ],
+        "pointSize": 2
+    },
+    "version": "1.0"
+}
